@@ -34,18 +34,10 @@ function ConteudoAtrasos() {
     useEffect(() => {
         const buscarDados = async () => {
             setCarregando(true);
-
-            // Puxa a URL da Vercel (Configurada no Enviroment)
             const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-
-            if (!baseUrl) {
-                console.error("ERRO: NEXT_PUBLIC_API_URL não está configurada na Vercel.");
-                setCarregando(false);
-                return;
-            }
+            if (!baseUrl) { setCarregando(false); return; }
 
             try {
-                // Agora as chamadas usam a variável dinâmica
                 const [resFunc, resPontos] = await Promise.all([
                     fetch(`${baseUrl}/funcionarios`, { cache: 'no-store' }),
                     fetch(`${baseUrl}/pontos`, { cache: 'no-store' })
@@ -62,11 +54,10 @@ function ConteudoAtrasos() {
                             (dt.getMonth() + 1) === mes &&
                             dt.getFullYear() === ano;
                     });
-
                     setDados({ atrasos: filtrados, funcionarios: f });
                 }
             } catch (error) {
-                console.error("Erro ao conectar com a VPS:", error);
+                console.error("Erro VPS:", error);
             } finally {
                 setCarregando(false);
             }
@@ -74,75 +65,57 @@ function ConteudoAtrasos() {
         buscarDados();
     }, [mesUrl]);
 
-    const mudarMes = (e: React.ChangeEvent<HTMLInputElement>) => {
-        router.push(`/dashboard/atrasos?mes=${e.target.value}`);
-    };
-
     return (
-        <div className="max-w-5xl mx-auto p-4 md:p-10">
-            <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 print:hidden">
-                <div className="text-center md:text-left">
-                    <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block hover:opacity-70 transition-all">← Voltar ao Início</Link>
-                    <h1 className="text-3xl font-black uppercase italic leading-none">Relatório de <span className="text-orange-500">Atrasos</span></h1>
-                </div>
-
-                <div className="flex items-center gap-4">
-                    <input
-                        type="month"
-                        value={mesUrl}
-                        onChange={mudarMes}
-                        className="bg-slate-900 border border-white/10 p-3 rounded-xl text-white font-bold uppercase text-xs outline-none focus:border-orange-500"
-                    />
-                    <button
-                        onClick={() => window.print()}
-                        className="bg-white text-black px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-500 transition-all active:scale-95"
-                    >
-                        🖨️ Imprimir Papel A4
-                    </button>
+        <div className="max-w-4xl mx-auto p-4 md:p-10">
+            {/* CONTROLES WEB */}
+            <header className="flex justify-between items-center mb-8 print:hidden">
+                <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-widest hover:opacity-70">← Dashboard</Link>
+                <div className="flex gap-4">
+                    <input type="month" value={mesUrl} onChange={(e) => router.push(`/dashboard/atrasos?mes=${e.target.value}`)} className="bg-slate-900 border border-white/10 p-2 rounded text-white font-bold text-xs" />
+                    <button onClick={() => window.print()} className="bg-white text-black px-4 py-2 rounded font-black uppercase text-[10px] hover:bg-orange-500 transition-all">Imprimir</button>
                 </div>
             </header>
 
-            <div className="bg-white text-black p-12 rounded-[40px] shadow-2xl print:shadow-none print:p-0 print:rounded-none">
-                <div className="flex justify-between items-start border-b-4 border-black pb-8 mb-10 text-black">
+            {/* RELATÓRIO COMPACTO */}
+            <div className="bg-white text-black p-0 md:p-8 print:p-0">
+                {/* CABEÇALHO DIRETO */}
+                <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-end">
                     <div>
-                        <h2 className="text-4xl font-black uppercase italic leading-none">Inconsistências</h2>
-                        <p className="text-sm font-bold text-slate-500 mt-2 uppercase tracking-tighter">GR AUTOPEÇAS • DEPARTAMENTO DE RH</p>
+                        <h1 className="text-2xl font-black uppercase tracking-tighter">Relatório de Inconsistências</h1>
+                        <p className="text-[10px] font-bold text-slate-500">GR AUTOPEÇAS | MÊS: {mesUrl.split('-').reverse().join('/')}</p>
                     </div>
-                    <div className="text-right">
-                        <p className="font-black text-2xl uppercase italic text-black">{mesUrl.split('-').reverse().join('/')}</p>
-                        <p className="text-[10px] font-bold opacity-40">GERADO VIA GR-ADMIN • VPS SYNC</p>
-                    </div>
+                    <p className="text-[8px] font-mono opacity-50 uppercase">Gerado via Admin-VPS</p>
                 </div>
 
                 {carregando ? (
-                    <div className="py-20 text-center font-black uppercase text-slate-300 animate-pulse tracking-[10px]">Auditando VPS...</div>
+                    <div className="py-10 text-center font-black uppercase animate-pulse">Sincronizando...</div>
                 ) : (
-                    <div className="space-y-12">
+                    <div className="space-y-8">
                         {dados.funcionarios.map(func => {
                             const seusAtrasos = dados.atrasos.filter(a => String(a.funcionarioId) === String(func.id));
                             if (seusAtrasos.length === 0) return null;
 
                             return (
-                                <section key={func.id} className="break-inside-avoid">
-                                    <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border-l-8 border-black mb-4">
-                                        <h3 className="text-xl font-black uppercase italic text-black">{func.nome} {func.sobrenome}</h3>
-                                        <span className="text-[10px] font-bold text-slate-500 uppercase">{func.cargo}</span>
+                                <section key={func.id} className="break-inside-avoid border border-slate-200 p-4">
+                                    <div className="border-b border-slate-200 pb-2 mb-3 flex justify-between items-center">
+                                        <h3 className="text-sm font-black uppercase">{func.nome} {func.sobrenome}</h3>
+                                        <span className="text-[9px] font-bold text-slate-400 italic">{func.cargo}</span>
                                     </div>
 
-                                    <table className="w-full text-left text-sm border-collapse text-black">
+                                    <table className="w-full text-[11px] border-collapse">
                                         <thead>
-                                        <tr className="border-b-2 border-slate-200">
-                                            <th className="py-3 font-black uppercase text-[10px]">Data</th>
-                                            <th className="py-3 font-black uppercase text-[10px]">Horário</th>
-                                            <th className="py-3 font-black uppercase text-[10px] text-right">Observação</th>
+                                        <tr className="text-slate-500 uppercase">
+                                            <th className="py-1 text-left border-b">Data</th>
+                                            <th className="py-1 text-left border-b">Horário Registro</th>
+                                            <th className="py-1 text-right border-b">Ocorrência</th>
                                         </tr>
                                         </thead>
                                         <tbody>
                                         {seusAtrasos.map((a, i) => (
-                                            <tr key={i} className="border-b border-slate-100">
-                                                <td className="py-4 font-bold">{new Date(a.data).toLocaleDateString('pt-BR')}</td>
-                                                <td className="py-4 font-black text-red-600">{a.horaFormatada}</td>
-                                                <td className="py-4 text-right italic text-[10px] font-bold text-slate-400 uppercase">{a.observacao}</td>
+                                            <tr key={i} className="border-b border-slate-50">
+                                                <td className="py-2 font-medium">{new Date(a.data).toLocaleDateString('pt-BR')}</td>
+                                                <td className="py-2 font-black">{a.horaFormatada}</td>
+                                                <td className="py-2 text-right text-red-600 font-bold uppercase text-[9px]">{a.observacao}</td>
                                             </tr>
                                         ))}
                                         </tbody>
@@ -152,29 +125,28 @@ function ConteudoAtrasos() {
                         })}
 
                         {dados.atrasos.length === 0 && (
-                            <div className="py-20 text-center border-2 border-dashed border-slate-200 rounded-[40px]">
-                                <p className="text-slate-300 font-black uppercase tracking-widest text-sm italic">Sem ocorrências no período.</p>
-                            </div>
+                            <p className="py-10 text-center text-slate-400 font-bold uppercase text-xs">Nenhuma inconsistência no período.</p>
                         )}
 
-                        <section className="pt-20 grid grid-cols-2 gap-20">
-                            <div className="text-center border-t-2 border-black pt-4">
-                                <p className="text-[10px] font-black uppercase">Responsável Operacional</p>
+                        {/* ASSINATURAS SIMPLES */}
+                        <div className="pt-10 grid grid-cols-2 gap-10">
+                            <div className="border-t border-black text-center pt-2">
+                                <p className="text-[9px] font-black uppercase">Responsável RH</p>
                             </div>
-                            <div className="text-center border-t-2 border-black pt-4">
-                                <p className="text-[10px] font-black uppercase">Recebido Contabilidade</p>
+                            <div className="border-t border-black text-center pt-2">
+                                <p className="text-[9px] font-black uppercase">Financeiro</p>
                             </div>
-                        </section>
+                        </div>
                     </div>
                 )}
             </div>
 
             <style jsx global>{`
                 @media print {
-                    @page { margin: 15mm; size: A4; }
+                    @page { margin: 10mm; size: A4; }
                     body { background: white !important; color: black !important; }
-                    main { padding: 0 !important; background: white !important; }
                     header, .print\:hidden { display: none !important; }
+                    section { page-break-inside: avoid; margin-bottom: 20px; }
                 }
             `}</style>
         </div>
@@ -184,9 +156,7 @@ function ConteudoAtrasos() {
 export default function AtrasosAdmin() {
     return (
         <main className="min-h-screen bg-black text-white font-sans">
-            <Suspense fallback={<div className="flex items-center justify-center h-screen font-black uppercase tracking-[10px] opacity-20">Carregando Relatório...</div>}>
-                <ConteudoAtrasos />
-            </Suspense>
+            <Suspense fallback={null}><ConteudoAtrasos /></Suspense>
         </main>
     );
 }
