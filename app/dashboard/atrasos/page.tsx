@@ -34,10 +34,21 @@ function ConteudoAtrasos() {
     useEffect(() => {
         const buscarDados = async () => {
             setCarregando(true);
+
+            // Puxa a URL da Vercel (Configurada no Enviroment)
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+            if (!baseUrl) {
+                console.error("ERRO: NEXT_PUBLIC_API_URL não está configurada na Vercel.");
+                setCarregando(false);
+                return;
+            }
+
             try {
+                // Agora as chamadas usam a variável dinâmica
                 const [resFunc, resPontos] = await Promise.all([
-                    fetch('http://76.13.231.158:3000/api/funcionarios'),
-                    fetch('http://76.13.231.158:3000/api/pontos')
+                    fetch(`${baseUrl}/funcionarios`, { cache: 'no-store' }),
+                    fetch(`${baseUrl}/pontos`, { cache: 'no-store' })
                 ]);
 
                 if (resFunc.ok && resPontos.ok) {
@@ -55,7 +66,7 @@ function ConteudoAtrasos() {
                     setDados({ atrasos: filtrados, funcionarios: f });
                 }
             } catch (error) {
-                console.error("Erro VPS:", error);
+                console.error("Erro ao conectar com a VPS:", error);
             } finally {
                 setCarregando(false);
             }
@@ -69,11 +80,10 @@ function ConteudoAtrasos() {
 
     return (
         <div className="max-w-5xl mx-auto p-4 md:p-10">
-            {/* CONTROLES - OCULTOS NA IMPRESSÃO */}
             <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 print:hidden">
                 <div className="text-center md:text-left">
-                    <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block">← Voltar ao Início</Link>
-                    <h1 className="text-3xl font-black uppercase italic">Relatório de <span className="text-orange-500">Atrasos</span></h1>
+                    <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block hover:opacity-70 transition-all">← Voltar ao Início</Link>
+                    <h1 className="text-3xl font-black uppercase italic leading-none">Relatório de <span className="text-orange-500">Atrasos</span></h1>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -92,16 +102,15 @@ function ConteudoAtrasos() {
                 </div>
             </header>
 
-            {/* RELATÓRIO FORMATADO PARA IMPRESSÃO */}
             <div className="bg-white text-black p-12 rounded-[40px] shadow-2xl print:shadow-none print:p-0 print:rounded-none">
-                <div className="flex justify-between items-start border-b-4 border-black pb-8 mb-10">
+                <div className="flex justify-between items-start border-b-4 border-black pb-8 mb-10 text-black">
                     <div>
                         <h2 className="text-4xl font-black uppercase italic leading-none">Inconsistências</h2>
                         <p className="text-sm font-bold text-slate-500 mt-2 uppercase tracking-tighter">GR AUTOPEÇAS • DEPARTAMENTO DE RH</p>
                     </div>
                     <div className="text-right">
-                        <p className="font-black text-2xl uppercase italic">{mesUrl.split('-').reverse().join('/')}</p>
-                        <p className="text-[10px] font-bold opacity-40">RELATÓRIO TÉCNICO GERADO VIA GR-ADMIN</p>
+                        <p className="font-black text-2xl uppercase italic text-black">{mesUrl.split('-').reverse().join('/')}</p>
+                        <p className="text-[10px] font-bold opacity-40">GERADO VIA GR-ADMIN • VPS SYNC</p>
                     </div>
                 </div>
 
@@ -116,16 +125,16 @@ function ConteudoAtrasos() {
                             return (
                                 <section key={func.id} className="break-inside-avoid">
                                     <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border-l-8 border-black mb-4">
-                                        <h3 className="text-xl font-black uppercase italic">{func.nome} {func.sobrenome}</h3>
+                                        <h3 className="text-xl font-black uppercase italic text-black">{func.nome} {func.sobrenome}</h3>
                                         <span className="text-[10px] font-bold text-slate-500 uppercase">{func.cargo}</span>
                                     </div>
 
-                                    <table className="w-full text-left text-sm border-collapse">
+                                    <table className="w-full text-left text-sm border-collapse text-black">
                                         <thead>
                                         <tr className="border-b-2 border-slate-200">
-                                            <th className="py-3 font-black uppercase text-[10px]">Data da Ocorrência</th>
+                                            <th className="py-3 font-black uppercase text-[10px]">Data</th>
                                             <th className="py-3 font-black uppercase text-[10px]">Horário</th>
-                                            <th className="py-3 font-black uppercase text-[10px] text-right">Justificativa Sistema</th>
+                                            <th className="py-3 font-black uppercase text-[10px] text-right">Observação</th>
                                         </tr>
                                         </thead>
                                         <tbody>
@@ -137,13 +146,6 @@ function ConteudoAtrasos() {
                                             </tr>
                                         ))}
                                         </tbody>
-                                        <tfoot>
-                                        <tr>
-                                            <td colSpan={3} className="py-4 text-right text-[10px] font-black uppercase opacity-40 italic">
-                                                Total de atrasos/faltas no período: {seusAtrasos.length}
-                                            </td>
-                                        </tr>
-                                        </tfoot>
                                     </table>
                                 </section>
                             );
@@ -151,19 +153,16 @@ function ConteudoAtrasos() {
 
                         {dados.atrasos.length === 0 && (
                             <div className="py-20 text-center border-2 border-dashed border-slate-200 rounded-[40px]">
-                                <p className="text-slate-300 font-black uppercase tracking-widest text-sm italic">Nenhuma falta ou atraso registrado neste mês.</p>
+                                <p className="text-slate-300 font-black uppercase tracking-widest text-sm italic">Sem ocorrências no período.</p>
                             </div>
                         )}
 
-                        {/* ASSINATURAS */}
                         <section className="pt-20 grid grid-cols-2 gap-20">
                             <div className="text-center border-t-2 border-black pt-4">
                                 <p className="text-[10px] font-black uppercase">Responsável Operacional</p>
-                                <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">GR Autopeças</p>
                             </div>
                             <div className="text-center border-t-2 border-black pt-4">
-                                <p className="text-[10px] font-black uppercase">Recebido pela Contabilidade</p>
-                                <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Conferência de Folha</p>
+                                <p className="text-[10px] font-black uppercase">Recebido Contabilidade</p>
                             </div>
                         </section>
                     </div>
@@ -175,8 +174,7 @@ function ConteudoAtrasos() {
                     @page { margin: 15mm; size: A4; }
                     body { background: white !important; color: black !important; }
                     main { padding: 0 !important; background: white !important; }
-                    header, .print\:hidden, [class*="print:hidden"] { display: none !important; }
-                    section { page-break-inside: avoid; }
+                    header, .print\:hidden { display: none !important; }
                 }
             `}</style>
         </div>
@@ -186,7 +184,7 @@ function ConteudoAtrasos() {
 export default function AtrasosAdmin() {
     return (
         <main className="min-h-screen bg-black text-white font-sans">
-            <Suspense fallback={null}>
+            <Suspense fallback={<div className="flex items-center justify-center h-screen font-black uppercase tracking-[10px] opacity-20">Carregando Relatório...</div>}>
                 <ConteudoAtrasos />
             </Suspense>
         </main>

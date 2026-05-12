@@ -21,29 +21,36 @@ function ConteudoCalendario() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    // Estados
     const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
     const [pontos, setPontos] = useState<Ponto[]>([]);
     const [carregando, setCarregando] = useState(true);
 
-    // Parâmetros da URL
     const funcId = searchParams.get('id') || '';
     const mesUrl = searchParams.get('mes') || '2026-05';
 
     useEffect(() => {
         const carregarDados = async () => {
             setCarregando(true);
+
+            // Puxa a URL configurada no painel da Vercel
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+            if (!baseUrl) {
+                console.error("ERRO: NEXT_PUBLIC_API_URL não definida.");
+                setCarregando(false);
+                return;
+            }
+
             try {
                 const [resFunc, resPontos] = await Promise.all([
-                    fetch('http://76.13.231.158:3000/api/funcionarios'),
-                    fetch('http://76.13.231.158:3000/api/pontos')
+                    fetch(`${baseUrl}/funcionarios`, { cache: 'no-store' }),
+                    fetch(`${baseUrl}/pontos`, { cache: 'no-store' })
                 ]);
 
                 if (resFunc.ok && resPontos.ok) {
                     setFuncionarios(await resFunc.json());
                     const todosPontos = await resPontos.json();
 
-                    // Filtrar pontos do funcionário e do mês selecionado
                     const [ano, mes] = mesUrl.split('-').map(Number);
                     const filtrados = todosPontos.filter((p: Ponto) => {
                         const dt = new Date(p.data);
@@ -53,13 +60,15 @@ function ConteudoCalendario() {
                     });
                     setPontos(filtrados);
                 }
-            } catch (error) { console.error(error); }
-            finally { setCarregando(false); }
+            } catch (error) {
+                console.error("Erro ao conectar VPS:", error);
+            } finally {
+                setCarregando(false);
+            }
         };
         carregarDados();
     }, [funcId, mesUrl]);
 
-    // Lógica para gerar os dias do mês
     const [ano, mes] = mesUrl.split('-').map(Number);
     const diasNoMes = new Date(ano, mes, 0).getDate();
     const diasArray = Array.from({ length: diasNoMes }, (_, i) => i + 1);
@@ -72,10 +81,9 @@ function ConteudoCalendario() {
 
     return (
         <div className="max-w-6xl mx-auto p-6 md:p-10">
-            {/* CONTROLES - OCULTOS NO PRINT */}
             <header className="flex flex-col md:flex-row justify-between items-end mb-10 gap-6 print:hidden">
                 <div className="w-full md:w-auto">
-                    <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block">← Voltar</Link>
+                    <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block hover:opacity-70 transition-all">← Voltar</Link>
                     <h1 className="text-4xl font-black uppercase italic leading-none">Espelho de <span className="text-orange-500">Ponto</span></h1>
                 </div>
 
@@ -83,7 +91,7 @@ function ConteudoCalendario() {
                     <select
                         value={funcId}
                         onChange={(e) => atualizarBusca('id', e.target.value)}
-                        className="bg-slate-900 border border-white/10 p-4 rounded-2xl font-bold text-xs outline-none focus:border-orange-500"
+                        className="bg-slate-900 border border-white/10 p-4 rounded-2xl font-bold text-xs outline-none focus:border-orange-500 text-white cursor-pointer"
                     >
                         <option value="">Selecionar Funcionário</option>
                         {funcionarios.map(f => (
@@ -94,34 +102,32 @@ function ConteudoCalendario() {
                         type="month"
                         value={mesUrl}
                         onChange={(e) => atualizarBusca('mes', e.target.value)}
-                        className="bg-slate-900 border border-white/10 p-4 rounded-2xl font-bold text-xs"
+                        className="bg-slate-900 border border-white/10 p-4 rounded-2xl font-bold text-xs text-white outline-none focus:border-orange-500"
                     />
                 </div>
             </header>
 
-            {/* GRADE DO CALENDÁRIO */}
             {!funcId ? (
                 <div className="py-40 text-center bg-slate-900/20 border-2 border-dashed border-slate-800 rounded-[50px]">
                     <p className="text-slate-600 font-black uppercase tracking-[5px]">Selecione um colaborador para ver o calendário</p>
                 </div>
             ) : (
                 <div className="bg-white text-black p-8 rounded-[50px] shadow-2xl print:shadow-none print:p-0 print:rounded-none">
-                    <div className="flex justify-between items-center mb-8 border-b-2 border-slate-100 pb-6">
+                    <div className="flex justify-between items-center mb-8 border-b-2 border-slate-100 pb-6 text-black">
                         <h2 className="text-2xl font-black uppercase italic">
                             {funcionarios.find(f => f.id === funcId)?.nome} {funcionarios.find(f => f.id === funcId)?.sobrenome}
                         </h2>
                         <span className="bg-black text-white px-4 py-1 rounded-full text-[10px] font-black uppercase">
-                            Mês de Referência: {mesUrl.split('-').reverse().join('/')}
+                            Ref: {mesUrl.split('-').reverse().join('/')}
                         </span>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
-                        {/* Cabeçalho de Dias da Semana (Opcional) */}
                         {diasArray.map(dia => {
                             const pontosDoDia = pontos.filter(p => new Date(p.data).getDate() === dia);
 
                             return (
-                                <div key={dia} className="min-h-[120px] border border-slate-100 p-3 rounded-2xl flex flex-col gap-2 hover:bg-slate-50 transition-all">
+                                <div key={dia} className="min-h-[120px] border border-slate-100 p-3 rounded-2xl flex flex-col gap-2 hover:bg-slate-50 transition-all text-black">
                                     <span className="text-lg font-black italic opacity-20">{dia.toString().padStart(2, '0')}</span>
                                     <div className="flex flex-wrap gap-1">
                                         {pontosDoDia.map((p, idx) => (
@@ -146,12 +152,11 @@ function ConteudoCalendario() {
                         })}
                     </div>
 
-                    {/* LEGENDA - APENAS PRINT */}
-                    <footer className="mt-10 pt-10 border-t border-slate-100 grid grid-cols-4 gap-4 text-[8px] font-black uppercase tracking-widest opacity-40">
-                        <p>🟦 Entrada Regular</p>
-                        <p>⬜ Saída Regular</p>
-                        <p>🟩 Hora Extra</p>
-                        <p>🟥 Alerta/Atraso</p>
+                    <footer className="mt-10 pt-10 border-t border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-[8px] font-black uppercase tracking-widest opacity-40 text-black">
+                        <p>🟦 Entrada</p>
+                        <p>⬜ Saída</p>
+                        <p>🟩 Extra</p>
+                        <p>🟥 Alerta</p>
                     </footer>
                 </div>
             )}
@@ -162,7 +167,7 @@ function ConteudoCalendario() {
 export default function CalendarioAdmin() {
     return (
         <main className="min-h-screen bg-black text-white font-sans">
-            <Suspense fallback={null}>
+            <Suspense fallback={<div className="flex items-center justify-center h-screen font-black uppercase opacity-20 tracking-[10px]">Abrindo Calendário...</div>}>
                 <ConteudoCalendario />
             </Suspense>
         </main>

@@ -26,10 +26,20 @@ export default function HistoricoFerramentas() {
     useEffect(() => {
         const carregarDados = async () => {
             setCarregando(true);
+
+            // Puxa a URL configurada no Environment da Vercel
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+            if (!baseUrl) {
+                console.error("ERRO: NEXT_PUBLIC_API_URL não configurada no painel da Vercel.");
+                setCarregando(false);
+                return;
+            }
+
             try {
                 const [resMov, resFunc] = await Promise.all([
-                    fetch('http://76.13.231.158:3000/api/ferramentas/movimentacao', { cache: 'no-store' }),
-                    fetch('http://76.13.231.158:3000/api/funcionarios', { cache: 'no-store' })
+                    fetch(`${baseUrl}/ferramentas/movimentacao`, { cache: 'no-store' }),
+                    fetch(`${baseUrl}/funcionarios`, { cache: 'no-store' })
                 ]);
 
                 if (resMov.ok && resFunc.ok) {
@@ -37,7 +47,7 @@ export default function HistoricoFerramentas() {
                     setFuncionarios(await resFunc.json());
                 }
             } catch (error) {
-                console.error("Erro VPS:", error);
+                console.error("Erro ao conectar à VPS:", error);
             } finally {
                 setCarregando(false);
             }
@@ -50,35 +60,31 @@ export default function HistoricoFerramentas() {
         return f ? `${f.nome} ${f.sobrenome}` : `Matrícula: ${id}`;
     };
 
-    // LÓGICA CORRIGIDA: Filtra apenas ferramentas que a ÚLTIMA ação foi retirada
     const ferramentasEmUso = () => {
         const mapaEstado: Record<string, Movimentacao> = {};
-
-        // Ordenamos por data (mais antigo para mais novo) para processar a linha do tempo
         const ordenado = [...historico].sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
 
         ordenado.forEach(log => {
             if (log.acao === 'retirada') {
                 mapaEstado[log.ferramentaId] = log;
             } else if (log.acao === 'devolucao') {
-                delete mapaEstado[log.ferramentaId]; // Se devolveu, removemos do estado "Em Uso"
+                delete mapaEstado[log.ferramentaId];
             }
         });
 
-        return Object.values(mapaEstado).reverse(); // Inverte para ver os mais recentes no topo
+        return Object.values(mapaEstado).reverse();
     };
 
     const ferramentasDevolvidas = historico.filter(log => log.acao === 'devolucao');
 
     return (
         <main className="min-h-screen bg-[#050505] text-white p-8 font-sans">
-            <header className="max-w-6xl mx-auto mb-12 flex flex-col md:flex-row justify-between items-center gap-6">
+            <header className="max-w-6xl mx-auto mb-12 flex flex-col md:flex-row justify-between items-center gap-6 text-white">
                 <div>
                     <Link href="/dashboard/ferramenta" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block hover:opacity-70 transition-all">← Voltar</Link>
                     <h1 className="text-4xl font-black uppercase italic leading-none">Rastreio de <span className="text-orange-500">Ativos</span></h1>
                 </div>
 
-                {/* FILTROS TIPO SWITCH */}
                 <div className="flex bg-slate-900 p-1 rounded-2xl border border-white/5 shadow-2xl">
                     <button
                         onClick={() => setFiltroAtivo('uso')}
@@ -104,7 +110,7 @@ export default function HistoricoFerramentas() {
                 </div>
 
                 <div className="bg-slate-900/40 border border-white/5 rounded-[45px] overflow-hidden backdrop-blur-xl shadow-2xl">
-                    <table className="w-full text-left border-collapse">
+                    <table className="w-full text-left border-collapse text-white">
                         <thead>
                         <tr className="bg-white/5 uppercase text-slate-500 text-[10px] font-black tracking-widest">
                             <th className="p-6">Ferramenta</th>
@@ -119,8 +125,8 @@ export default function HistoricoFerramentas() {
                         ) : (filtroAtivo === 'uso' ? ferramentasEmUso() : ferramentasDevolvidas).length > 0 ? (
                             (filtroAtivo === 'uso' ? ferramentasEmUso() : ferramentasDevolvidas).map((log, index) => (
                                 <tr key={log._id || index} className="hover:bg-white/[0.02] transition-colors group">
-                                    <td className="p-6 text-white">
-                                        <p className="font-black uppercase italic text-sm leading-none mb-1">{log.nomeFerramenta}</p>
+                                    <td className="p-6">
+                                        <p className="font-black uppercase italic text-sm leading-none mb-1 text-white">{log.nomeFerramenta}</p>
                                         <p className="text-[9px] text-orange-500 font-mono font-bold tracking-widest">UID: {log.ferramentaId}</p>
                                     </td>
                                     <td className="p-6">

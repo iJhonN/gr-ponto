@@ -16,14 +16,26 @@ export default function EtiquetasFerramentas() {
     useEffect(() => {
         const carregarDados = async () => {
             setCarregando(true);
+
+            // Puxa a URL configurada no painel da Vercel
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+            if (!baseUrl) {
+                console.error("ERRO: NEXT_PUBLIC_API_URL não definida na Vercel.");
+                setCarregando(false);
+                return;
+            }
+
             try {
-                const response = await fetch('http://76.13.231.158:3000/api/ferramentas');
+                const response = await fetch(`${baseUrl}/ferramentas`, {
+                    cache: 'no-store'
+                });
                 if (response.ok) {
                     const dados = await response.json();
                     setFerramentas(dados);
                 }
             } catch (error) {
-                console.error("Erro ao carregar ferramentas:", error);
+                console.error("Erro ao carregar ferramentas da VPS:", error);
             } finally {
                 setCarregando(false);
             }
@@ -45,8 +57,8 @@ export default function EtiquetasFerramentas() {
             {/* CABEÇALHO - OCULTO NA IMPRESSÃO */}
             <header className="max-w-6xl mx-auto mb-10 flex flex-col md:flex-row justify-between items-end gap-6 print:hidden">
                 <div>
-                    <Link href="/dashboard/ferramenta" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block">← Gestão de Ativos</Link>
-                    <h1 className="text-4xl font-black uppercase italic leading-none">Etiquetas de <span className="text-orange-500">Identificação</span></h1>
+                    <Link href="/dashboard/ferramenta" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block hover:opacity-70 transition-all">← Gestão de Ativos</Link>
+                    <h1 className="text-4xl font-black uppercase italic leading-none text-white">Etiquetas de <span className="text-orange-500">Identificação</span></h1>
                     <p className="text-slate-500 text-[10px] font-black uppercase mt-2 tracking-widest italic">Padrão de Impressão: Grade 4xN (A4)</p>
                 </div>
 
@@ -54,14 +66,14 @@ export default function EtiquetasFerramentas() {
                     onClick={() => window.print()}
                     className="bg-orange-600 px-8 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-500 transition-all active:scale-95 shadow-xl"
                 >
-                    🖨️ Imprimir Todas as Etiquetas
+                    🖨️ Imprimir Todas
                 </button>
             </header>
 
             {/* GRADE DE ETIQUETAS */}
             <section className={`max-w-6xl mx-auto ${itemIndividual ? 'print:hidden' : 'print:grid print:grid-cols-4 print:gap-2'} grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4`}>
                 {carregando ? (
-                    <div className="col-span-full text-center py-20 animate-pulse font-black uppercase text-slate-800 tracking-[5px]">Carregando Inventário...</div>
+                    <div className="col-span-full text-center py-20 animate-pulse font-black uppercase text-slate-800 tracking-[5px]">Sincronizando Inventário...</div>
                 ) : (
                     ferramentas.map((item) => (
                         <div
@@ -69,13 +81,12 @@ export default function EtiquetasFerramentas() {
                             className="bg-slate-900 border border-white/5 p-6 rounded-[30px] flex flex-col items-center justify-center gap-4 transition-all hover:border-orange-500/30 print:border print:border-black print:rounded-none print:bg-white print:text-black print:shadow-none print:break-inside-avoid print:h-[140px] print:w-full"
                         >
                             <div className="text-center w-full">
-                                <h3 className="font-black uppercase italic text-xs leading-tight truncate mb-1 print:text-[9px]">
+                                <h3 className="font-black uppercase italic text-xs leading-tight truncate mb-1 print:text-[9px] text-white print:text-black">
                                     {item.nome}
                                 </h3>
                                 <p className="text-[7px] font-bold text-slate-600 uppercase tracking-widest print:hidden">Ref: {item.id}</p>
                             </div>
 
-                            {/* Área do Código de Barras */}
                             <div className="bg-white p-2 rounded-xl flex flex-col items-center print:p-0">
                                 <Barcode
                                     value={item.id}
@@ -98,10 +109,10 @@ export default function EtiquetasFerramentas() {
                 )}
             </section>
 
-            {/* FOCO DE IMPRESSÃO INDIVIDUAL - EXCLUSIVO PARA O NAVEGADOR PC */}
+            {/* FOCO DE IMPRESSÃO INDIVIDUAL */}
             {itemIndividual && (
                 <div className="hidden print:flex flex-col items-center justify-center h-screen w-full">
-                    <h1 className="text-4xl font-black uppercase italic mb-8">{itemIndividual.nome}</h1>
+                    <h1 className="text-4xl font-black uppercase italic mb-8 text-black">{itemIndividual.nome}</h1>
                     <div className="border-[12px] border-black p-12 bg-white">
                         <Barcode
                             value={itemIndividual.id}
@@ -116,28 +127,20 @@ export default function EtiquetasFerramentas() {
 
             <style jsx global>{`
                 @media print {
-                    @page { 
-                        size: A4; 
-                        margin: 10mm; 
+                    @page {
+                        size: A4;
+                        margin: 10mm;
                     }
-                    header, .print\:hidden, [class*="print:hidden"] { 
-                        display: none !important; 
+                    header, .print\:hidden, [class*="print:hidden"] {
+                        display: none !important;
                     }
-                    body { 
-                        background: white !important; 
-                        color: black !important; 
+                    body {
+                        background: white !important;
+                        color: black !important;
                     }
                     main {
                         background: white !important;
                         padding: 0 !important;
-                    }
-                    .print\:grid { 
-                        display: grid !important; 
-                        grid-template-columns: repeat(4, 1fr) !important; 
-                        gap: 10px !important;
-                    }
-                    .print\:flex {
-                        display: flex !important;
                     }
                 }
             `}</style>

@@ -34,10 +34,20 @@ function ConteudoHorasExtras() {
     useEffect(() => {
         const buscarDados = async () => {
             setCarregando(true);
+
+            // Puxa a URL configurada na Vercel
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
+            if (!baseUrl) {
+                console.error("ERRO: NEXT_PUBLIC_API_URL não configurada.");
+                setCarregando(false);
+                return;
+            }
+
             try {
                 const [resFunc, resPontos] = await Promise.all([
-                    fetch('http://76.13.231.158:3000/api/funcionarios'),
-                    fetch('http://76.13.231.158:3000/api/pontos')
+                    fetch(`${baseUrl}/funcionarios`, { cache: 'no-store' }),
+                    fetch(`${baseUrl}/pontos`, { cache: 'no-store' })
                 ]);
 
                 if (resFunc.ok && resPontos.ok) {
@@ -54,13 +64,15 @@ function ConteudoHorasExtras() {
 
                     setDados({ extras: filtrados, funcionarios: f });
                 }
-            } catch (error) { console.error(error); }
-            finally { setCarregando(false); }
+            } catch (error) {
+                console.error("Erro VPS:", error);
+            } finally {
+                setCarregando(false);
+            }
         };
         buscarDados();
     }, [mesUrl]);
 
-    // Funções de Cálculo de Tempo
     const converterParaMinutos = (horario: string) => {
         const [h, m] = horario.split(':').map(Number);
         return (h * 60) + m;
@@ -74,11 +86,10 @@ function ConteudoHorasExtras() {
 
     return (
         <div className="max-w-5xl mx-auto p-4 md:p-10">
-            {/* CONTROLES WEB */}
             <header className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6 print:hidden">
                 <div>
-                    <Link href="/dashboard" className="text-green-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block">← Painel Admin</Link>
-                    <h1 className="text-3xl font-black uppercase italic italic">Horas <span className="text-green-500">Extras</span></h1>
+                    <Link href="/dashboard" className="text-green-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block hover:opacity-70 transition-all">← Painel Admin</Link>
+                    <h1 className="text-3xl font-black uppercase italic leading-none text-white">Horas <span className="text-green-500">Extras</span></h1>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -86,27 +97,26 @@ function ConteudoHorasExtras() {
                         type="month"
                         value={mesUrl}
                         onChange={(e) => router.push(`/dashboard/he?mes=${e.target.value}`)}
-                        className="bg-slate-900 border border-white/10 p-3 rounded-xl text-white font-bold uppercase text-xs"
+                        className="bg-slate-900 border border-white/10 p-3 rounded-xl text-white font-bold uppercase text-xs outline-none focus:border-green-500"
                     />
                     <button
                         onClick={() => window.print()}
                         className="bg-green-600 text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-500 transition-all shadow-xl shadow-green-900/20"
                     >
-                        🖨️ Imprimir Fechamento
+                        🖨️ Imprimir
                     </button>
                 </div>
             </header>
 
-            {/* RELATÓRIO PARA CONTABILIDADE */}
             <div className="bg-white text-black p-12 rounded-[40px] shadow-2xl print:shadow-none print:p-0 print:rounded-none">
                 <div className="flex justify-between items-start border-b-4 border-green-600 pb-8 mb-10">
                     <div>
                         <h2 className="text-4xl font-black uppercase italic leading-none text-green-700">Adicionais</h2>
-                        <p className="text-sm font-bold text-slate-500 mt-2 uppercase tracking-tighter text-black">GR AUTOPEÇAS • GESTÃO DE PRODUTIVIDADE</p>
+                        <p className="text-sm font-bold text-slate-500 mt-2 uppercase tracking-tighter">GR AUTOPEÇAS • GESTÃO DE PRODUTIVIDADE</p>
                     </div>
                     <div className="text-right">
-                        <p className="font-black text-2xl uppercase italic">{mesUrl.split('-').reverse().join('/')}</p>
-                        <p className="text-[9px] font-bold opacity-40">CALCULADO COM ADICIONAL NOTURNO PÓS-18:00</p>
+                        <p className="font-black text-2xl uppercase italic text-black">{mesUrl.split('-').reverse().join('/')}</p>
+                        <p className="text-[9px] font-bold opacity-40">GERADO VIA GR-ADMIN • SYNC VPS</p>
                     </div>
                 </div>
 
@@ -126,19 +136,18 @@ function ConteudoHorasExtras() {
                                 if (h >= 18) {
                                     minNoturnos += (converterParaMinutos(e.horaFormatada) - converterParaMinutos("18:00"));
                                 } else {
-                                    // Considera extra diurna (antes das 8h ou no almoço)
-                                    minDiurnos += 30; // Exemplo: cada bipe de extra diurna computa 30min ou conforme sua regra
+                                    minDiurnos += 30;
                                 }
                             });
 
                             return (
                                 <section key={func.id} className="break-inside-avoid">
-                                    <div className="flex justify-between items-center bg-green-50 p-5 rounded-2xl border-l-8 border-green-700 mb-6">
+                                    <div className="flex justify-between items-center bg-green-50 p-5 rounded-2xl border-l-8 border-green-700 mb-6 text-black">
                                         <h3 className="text-2xl font-black uppercase italic">{func.nome} {func.sobrenome}</h3>
                                         <p className="text-[10px] font-black uppercase text-green-800 tracking-widest">{func.cargo}</p>
                                     </div>
 
-                                    <table className="w-full text-left text-[12px] border-collapse mb-6">
+                                    <table className="w-full text-left text-[12px] border-collapse mb-6 text-black">
                                         <thead>
                                         <tr className="border-b-2 border-slate-200 text-slate-400 uppercase">
                                             <th className="py-3 font-black">Data</th>
@@ -159,14 +168,13 @@ function ConteudoHorasExtras() {
                                         </tbody>
                                     </table>
 
-                                    {/* RESUMO DE VALORES DO FUNCIONÁRIO */}
-                                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-6 rounded-3xl border-2 border-slate-100">
+                                    <div className="grid grid-cols-2 gap-4 bg-slate-50 p-6 rounded-3xl border-2 border-slate-100 text-black">
                                         <div className="border-r border-slate-200">
-                                            <p className="text-[9px] font-black uppercase text-blue-600 tracking-widest">Total Extras Diurnas</p>
+                                            <p className="text-[9px] font-black uppercase text-blue-600 tracking-widest">Extras Diurnas</p>
                                             <p className="text-2xl font-black italic">{formatarMinutos(minDiurnos)}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[9px] font-black uppercase text-green-700 tracking-widest">Total Extras Noturnas</p>
+                                            <p className="text-[9px] font-black uppercase text-green-700 tracking-widest">Extras Noturnas</p>
                                             <p className="text-2xl font-black italic">{formatarMinutos(minNoturnos)}</p>
                                         </div>
                                     </div>
@@ -174,15 +182,12 @@ function ConteudoHorasExtras() {
                             );
                         })}
 
-                        {/* ASSINATURAS */}
                         <section className="pt-20 grid grid-cols-2 gap-20">
                             <div className="text-center border-t-2 border-black pt-4">
-                                <p className="text-[10px] font-black uppercase tracking-widest leading-none">Visto do Colaborador</p>
-                                <p className="text-[8px] text-slate-400 font-bold uppercase mt-1 italic">Concordo com os registros acima</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-black">Visto do Colaborador</p>
                             </div>
                             <div className="text-center border-t-2 border-black pt-4">
-                                <p className="text-[10px] font-black uppercase tracking-widest leading-none">Diretoria GR Autopeças</p>
-                                <p className="text-[8px] text-slate-400 font-bold uppercase mt-1 italic">Validação para Folha de Pagamento</p>
+                                <p className="text-[10px] font-black uppercase tracking-widest text-black">Diretoria GR Autopeças</p>
                             </div>
                         </section>
                     </div>
@@ -193,8 +198,7 @@ function ConteudoHorasExtras() {
                 @media print {
                     @page { margin: 15mm; size: A4; }
                     body { background: white !important; color: black !important; }
-                    header, .print\:hidden, [class*="print:hidden"] { display: none !important; }
-                    section { page-break-inside: avoid; }
+                    header, .print\:hidden { display: none !important; }
                     .text-green-700 { color: #15803d !important; }
                 }
             `}</style>
@@ -205,7 +209,7 @@ function ConteudoHorasExtras() {
 export default function HEAdmin() {
     return (
         <main className="min-h-screen bg-black text-white font-sans">
-            <Suspense fallback={null}>
+            <Suspense fallback={<div className="flex items-center justify-center h-screen font-black uppercase opacity-20 tracking-[10px]">Calculando Horas Extras...</div>}>
                 <ConteudoHorasExtras />
             </Suspense>
         </main>
