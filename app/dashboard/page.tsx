@@ -1,6 +1,15 @@
 "use client";
 import Link from 'next/link';
 
+// Definindo a interface para o TypeScript aceitar as propriedades do card
+interface MenuCardProps {
+    href: string;
+    title: string;
+    desc: string;
+    icon: string;
+    color: string;
+}
+
 export default function DashboardHome() {
     return (
         <main className="min-h-screen bg-[#050505] text-white p-8 font-sans">
@@ -55,7 +64,8 @@ export default function DashboardHome() {
     );
 }
 
-function MenuCard({ href, title, desc, icon, color }) {
+// Componente corrigido com a tipagem MenuCardProps
+function MenuCard({ href, title, desc, icon, color }: MenuCardProps) {
     return (
         <Link href={href} className="group bg-slate-900 border border-white/5 p-8 rounded-[45px] hover:border-white/20 transition-all active:scale-95">
             <div className={`${color} w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-xl group-hover:rotate-6 transition-transform`}>
