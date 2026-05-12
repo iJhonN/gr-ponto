@@ -23,7 +23,7 @@ export default function DashboardHome() {
                 </div>
             </header>
 
-            {/* Grid ajustado para comportar os 5 botões de forma equilibrada */}
+            {/* Grid com 6 cards - Perfeito para 2 ou 3 colunas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
 
                 {/* CARD FUNCIONÁRIOS */}
@@ -44,7 +44,16 @@ export default function DashboardHome() {
                     color="bg-orange-600"
                 />
 
-                {/* CARD ATRASOS (Antiga Contabilidade) */}
+                {/* CARD REGISTRAR (NOVO) */}
+                <MenuCard
+                    href="/dashboard/registrar"
+                    title="Lançamentos"
+                    desc="Pausas e Extras Manuais"
+                    icon="✍️"
+                    color="bg-indigo-600"
+                />
+
+                {/* CARD ATRASOS */}
                 <MenuCard
                     href="/dashboard/atrasos"
                     title="Atrasos"
