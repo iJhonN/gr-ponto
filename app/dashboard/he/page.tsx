@@ -10,7 +10,8 @@ interface PontoExtra {
     data: string;
     horaFormatada: string;
     observacao: string;
-    tipo: 'extra';
+    tipo: 'extra' | 'pausa'; // Agora aceita pausa para o cálculo
+    minutosAjuste?: number;  // Campo vindo da VPS
 }
 
 interface Funcionario {
@@ -48,9 +49,10 @@ function ConteudoHorasExtras() {
                     const p = await resPontos.json();
                     const [ano, mes] = mesUrl.split('-').map(Number);
 
+                    // Filtramos por mês/ano e apenas tipos que afetam o banco de horas
                     const filtrados = p.filter((ponto: PontoExtra) => {
                         const dt = new Date(ponto.data);
-                        return ponto.tipo === 'extra' &&
+                        return (ponto.tipo === 'extra' || ponto.tipo === 'pausa') &&
                             (dt.getMonth() + 1) === mes &&
                             dt.getFullYear() === ano;
                     });
@@ -62,20 +64,22 @@ function ConteudoHorasExtras() {
         buscarDados();
     }, [mesUrl]);
 
-    // Lógica Matemática de Tempo
     const converterParaMinutos = (horario: string) => {
+        if (!horario || horario === "--:--") return 0;
         const [h, m] = horario.split(':').map(Number);
         return (h * 60) + m;
     };
 
     const formatarMinutos = (total: number) => {
-        const h = Math.floor(total / 60);
-        const m = total % 60;
-        return `${h}h ${m.toString().padStart(2, '0')}m`;
+        const totalAbs = Math.abs(total);
+        const h = Math.floor(totalAbs / 60);
+        const m = totalAbs % 60;
+        const sinal = total < 0 ? "-" : "";
+        return `${sinal}${h}h ${m.toString().padStart(2, '0')}m`;
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-4 md:p-10">
+        <div className="max-w-4xl mx-auto p-4 md:p-10 text-black">
             <header className="flex justify-between items-center mb-8 print:hidden">
                 <Link href="/dashboard" className="text-green-500 font-black text-[10px] uppercase tracking-widest hover:opacity-70">← Dashboard</Link>
                 <div className="flex gap-4">
@@ -84,23 +88,22 @@ function ConteudoHorasExtras() {
                 </div>
             </header>
 
-            <div className="bg-white text-black p-0 md:p-8 print:p-0">
-                {/* CABEÇALHO COMPACTO */}
+            <div className="bg-white p-0 md:p-8 print:p-0">
                 <div className="border-b-2 border-black pb-4 mb-6 flex justify-between items-end">
                     <div>
                         <h1 className="text-2xl font-black uppercase tracking-tighter text-green-700">Fechamento de Horas Extras</h1>
                         <p className="text-[10px] font-bold text-slate-500">GR AUTOPEÇAS | COMPETÊNCIA: {mesUrl.split('-').reverse().join('/')}</p>
                     </div>
-                    <p className="text-[8px] font-mono opacity-50 uppercase">Cálculo Automático VPS</p>
+                    <p className="text-[8px] font-mono opacity-50 uppercase">Cálculo VPS v2.0</p>
                 </div>
 
                 {carregando ? (
-                    <div className="py-10 text-center font-black uppercase animate-pulse">Calculando...</div>
+                    <div className="py-10 text-center font-black uppercase animate-pulse">Calculando Folha...</div>
                 ) : (
                     <div className="space-y-10">
                         {dados.funcionarios.map(func => {
-                            const suasExtras = dados.extras.filter(e => String(e.funcionarioId) === String(func.id));
-                            if (suasExtras.length === 0) return null;
+                            const seusRegistros = dados.extras.filter(e => String(e.funcionarioId) === String(func.id));
+                            if (seusRegistros.length === 0) return null;
 
                             let minDiurnos = 0;
                             let minNoturnos = 0;
@@ -114,32 +117,41 @@ function ConteudoHorasExtras() {
 
                                     <table className="w-full text-[11px] border-collapse mb-4">
                                         <thead>
-                                        <tr className="text-slate-500 uppercase">
+                                        <tr className="text-slate-500 uppercase text-[10px]">
                                             <th className="py-1 text-left border-b">Data</th>
-                                            <th className="py-1 text-left border-b">Hora Registro</th>
-                                            <th className="py-1 text-right border-b">Classificação</th>
+                                            <th className="py-1 text-left border-b">Registro</th>
+                                            <th className="py-1 text-right border-b">Classificação / Ajuste</th>
                                         </tr>
                                         </thead>
                                         <tbody>
-                                        {suasExtras.map((e, i) => {
+                                        {seusRegistros.map((e, i) => {
                                             const minutosPonto = converterParaMinutos(e.horaFormatada);
-                                            const isNoturno = minutosPonto >= 1080; // 18:00 em minutos
+                                            const isNoturno = minutosPonto >= 1080; // 18:00
 
-                                            // Regra: se for extra, calculamos o excedente
-                                            // Nota: Aqui você pode ajustar a regra de 'quanto' tempo cada batida representa
-                                            // Se for apenas uma batida de saída, calculamos (Hora - 18:00) para noturnas
-                                            if (isNoturno) {
-                                                minNoturnos += (minutosPonto - 1080);
-                                            } else {
-                                                minDiurnos += 30; // Valor padrão por registro diurno se não houver cálculo de saída
+                                            // Se for EXTRA (Automática ou Manual)
+                                            if (e.tipo === 'extra') {
+                                                if (e.horaFormatada === "--:--") {
+                                                    // Manual: Adiciona direto nos diurnos (ou você pode ajustar a lógica se for extra noturna manual)
+                                                    minDiurnos += (e.minutosAjuste || 0);
+                                                } else {
+                                                    // Automática (Bipe)
+                                                    if (isNoturno) minNoturnos += (minutosPonto - 1080);
+                                                    else minDiurnos += 30;
+                                                }
+                                            }
+                                            // Se for PAUSA (Sempre manual)
+                                            else if (e.tipo === 'pausa') {
+                                                minDiurnos -= (e.minutosAjuste || 0);
                                             }
 
                                             return (
                                                 <tr key={i} className="border-b border-slate-50">
                                                     <td className="py-2 font-medium">{new Date(e.data).toLocaleDateString('pt-BR')}</td>
-                                                    <td className="py-2 font-black text-green-700">{e.horaFormatada}</td>
+                                                    <td className={`py-2 font-black ${e.tipo === 'pausa' ? 'text-purple-600' : 'text-green-700'}`}>
+                                                        {e.horaFormatada !== "--:--" ? e.horaFormatada : `${e.minutosAjuste} min`}
+                                                    </td>
                                                     <td className="py-2 text-right font-bold uppercase text-[9px]">
-                                                        {isNoturno ? '🌙 Noturna (Pós-18h)' : '☀️ Diurna'}
+                                                        {e.tipo === 'pausa' ? '☕ Pausa Lançada' : (isNoturno ? '🌙 Noturna' : '☀️ Diurna')}
                                                     </td>
                                                 </tr>
                                             );
@@ -147,10 +159,9 @@ function ConteudoHorasExtras() {
                                         </tbody>
                                     </table>
 
-                                    {/* RESUMO DE TEMPO CALCULADO */}
                                     <div className="grid grid-cols-2 gap-2 border-t pt-3">
                                         <div className="bg-slate-50 p-2 text-center">
-                                            <p className="text-[8px] font-black uppercase opacity-50">Total Diurnas</p>
+                                            <p className="text-[8px] font-black uppercase opacity-50">Saldo Diurno (c/ descontos)</p>
                                             <p className="text-sm font-black">{formatarMinutos(minDiurnos)}</p>
                                         </div>
                                         <div className="bg-green-50 p-2 text-center">
@@ -162,13 +173,12 @@ function ConteudoHorasExtras() {
                             );
                         })}
 
-                        {/* ASSINATURAS */}
                         <div className="pt-10 grid grid-cols-2 gap-10">
                             <div className="border-t border-black text-center pt-2">
                                 <p className="text-[9px] font-black uppercase">Assinatura Colaborador</p>
                             </div>
                             <div className="border-t border-black text-center pt-2">
-                                <p className="text-[9px] font-black uppercase">Gerência / RH</p>
+                                <p className="text-[9px] font-black uppercase">Conferido por Direção</p>
                             </div>
                         </div>
                     </div>
@@ -181,6 +191,7 @@ function ConteudoHorasExtras() {
                     body { background: white !important; color: black !important; }
                     header, .print\:hidden { display: none !important; }
                     .text-green-700 { color: #15803d !important; }
+                    .text-purple-600 { color: #7c3aed !important; }
                 }
             `}</style>
         </div>

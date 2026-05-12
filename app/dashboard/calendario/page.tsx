@@ -8,7 +8,8 @@ interface Ponto {
     funcionarioId: string;
     data: string;
     horaFormatada: string;
-    tipo: 'entrada' | 'saida' | 'alerta' | 'extra';
+    tipo: 'entrada' | 'saida' | 'alerta' | 'extra' | 'pausa'; // Adicionado 'pausa'
+    minutosAjuste?: number; // Campo para lançamentos manuais
 }
 
 interface Funcionario {
@@ -31,8 +32,6 @@ function ConteudoCalendario() {
     useEffect(() => {
         const carregarDados = async () => {
             setCarregando(true);
-
-            // Puxa a URL configurada no painel da Vercel
             const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
             if (!baseUrl) {
@@ -54,9 +53,12 @@ function ConteudoCalendario() {
                     const [ano, mes] = mesUrl.split('-').map(Number);
                     const filtrados = todosPontos.filter((p: Ponto) => {
                         const dt = new Date(p.data);
+                        // Ajuste para considerar o fuso ao comparar o mês/ano
+                        const localDt = new Date(dt.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+
                         return String(p.funcionarioId) === funcId &&
-                            (dt.getMonth() + 1) === mes &&
-                            dt.getFullYear() === ano;
+                            (localDt.getMonth() + 1) === mes &&
+                            localDt.getFullYear() === ano;
                     });
                     setPontos(filtrados);
                 }
@@ -80,9 +82,9 @@ function ConteudoCalendario() {
     };
 
     return (
-        <div className="max-w-6xl mx-auto p-6 md:p-10">
+        <div className="max-w-6xl mx-auto p-6 md:p-10 text-black">
             <header className="flex flex-col md:flex-row justify-between items-end mb-10 gap-6 print:hidden">
-                <div className="w-full md:w-auto">
+                <div className="w-full md:w-auto text-white">
                     <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block hover:opacity-70 transition-all">← Voltar</Link>
                     <h1 className="text-4xl font-black uppercase italic leading-none">Espelho de <span className="text-orange-500">Ponto</span></h1>
                 </div>
@@ -112,8 +114,8 @@ function ConteudoCalendario() {
                     <p className="text-slate-600 font-black uppercase tracking-[5px]">Selecione um colaborador para ver o calendário</p>
                 </div>
             ) : (
-                <div className="bg-white text-black p-8 rounded-[50px] shadow-2xl print:shadow-none print:p-0 print:rounded-none">
-                    <div className="flex justify-between items-center mb-8 border-b-2 border-slate-100 pb-6 text-black">
+                <div className="bg-white p-8 rounded-[50px] shadow-2xl print:shadow-none print:p-0 print:rounded-none">
+                    <div className="flex justify-between items-center mb-8 border-b-2 border-slate-100 pb-6">
                         <h2 className="text-2xl font-black uppercase italic">
                             {funcionarios.find(f => f.id === funcId)?.nome} {funcionarios.find(f => f.id === funcId)?.sobrenome}
                         </h2>
@@ -124,23 +126,31 @@ function ConteudoCalendario() {
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
                         {diasArray.map(dia => {
-                            const pontosDoDia = pontos.filter(p => new Date(p.data).getDate() === dia);
+                            // Filtro considerando o dia do mês no fuso correto
+                            const pontosDoDia = pontos.filter(p => {
+                                const d = new Date(p.data);
+                                const localD = new Date(d.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+                                return localD.getDate() === dia;
+                            });
 
                             return (
-                                <div key={dia} className="min-h-[120px] border border-slate-100 p-3 rounded-2xl flex flex-col gap-2 hover:bg-slate-50 transition-all text-black">
+                                <div key={dia} className="min-h-[120px] border border-slate-100 p-3 rounded-2xl flex flex-col gap-2 hover:bg-slate-50 transition-all">
                                     <span className="text-lg font-black italic opacity-20">{dia.toString().padStart(2, '0')}</span>
                                     <div className="flex flex-wrap gap-1">
                                         {pontosDoDia.map((p, idx) => (
                                             <div
                                                 key={idx}
+                                                title={p.horaFormatada === "--:--" ? "Lançamento Manual" : "Registro de Ponto"}
                                                 className={`text-[9px] font-black px-2 py-1 rounded-md uppercase border ${
                                                     p.tipo === 'entrada' ? 'bg-blue-100 text-blue-700 border-blue-200' :
                                                         p.tipo === 'saida' ? 'bg-slate-100 text-slate-700 border-slate-200' :
                                                             p.tipo === 'extra' ? 'bg-green-100 text-green-700 border-green-200' :
-                                                                'bg-red-100 text-red-700 border-red-200'
+                                                                p.tipo === 'pausa' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                                                    'bg-red-100 text-red-700 border-red-200'
                                                 }`}
                                             >
-                                                {p.horaFormatada}
+                                                {/* Lógica: se for manual (--:--), mostra os minutos. Caso contrário, a hora. */}
+                                                {p.horaFormatada !== "--:--" ? p.horaFormatada : `+${p.minutosAjuste}m`}
                                             </div>
                                         ))}
                                     </div>
@@ -152,10 +162,11 @@ function ConteudoCalendario() {
                         })}
                     </div>
 
-                    <footer className="mt-10 pt-10 border-t border-slate-100 grid grid-cols-2 md:grid-cols-4 gap-4 text-[8px] font-black uppercase tracking-widest opacity-40 text-black">
+                    <footer className="mt-10 pt-10 border-t border-slate-100 grid grid-cols-2 md:grid-cols-5 gap-4 text-[8px] font-black uppercase tracking-widest opacity-60">
                         <p>🟦 Entrada</p>
                         <p>⬜ Saída</p>
                         <p>🟩 Extra</p>
+                        <p>🟪 Pausa</p>
                         <p>🟥 Alerta</p>
                     </footer>
                 </div>
