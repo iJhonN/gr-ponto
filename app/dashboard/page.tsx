@@ -38,7 +38,7 @@ export default function DashboardHome() {
                 {/* CARD FERRAMENTAS (ESTOQUE) */}
                 <MenuCard
                     href="/dashboard/ferramenta"
-                    title="Estoque"
+                    title="Ferramentas"
                     desc="Ferramentas e Etiquetas"
                     icon="📦"
                     color="bg-orange-600"
