@@ -41,56 +41,58 @@ function ConteudoCrachas() {
             <header className="max-w-5xl mx-auto mb-10 flex justify-between items-end print:hidden">
                 <div>
                     <Link href="/dashboard/funcionario" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block">← Gestão</Link>
-                    <h1 className="text-3xl font-black uppercase italic">Impressão de <span className="text-orange-500">Crachás Verticais</span></h1>
+                    <h1 className="text-3xl font-black uppercase italic">Emissão de <span className="text-orange-500">Crachás Grandes</span></h1>
+                    <p className="text-slate-500 text-[10px] uppercase font-bold tracking-widest mt-1">Configurado: 2 por coluna (A4)</p>
                 </div>
-                <button onClick={() => window.print()} className="bg-orange-600 px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-500 transition-all shadow-lg shadow-orange-900/20">
-                    🖨️ Imprimir Lote A4
+                <button onClick={() => window.print()} className="bg-orange-600 px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-500 transition-all shadow-xl shadow-orange-900/20">
+                    🖨️ Imprimir em Lote
                 </button>
             </header>
 
-            {/* GRADE DE CRACHÁS VERTICAIS */}
-            <section className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 print:grid-cols-3 print:gap-4">
+            {/* GRADE DE CRACHÁS - 2 POR COLUNA NA IMPRESSÃO */}
+            <section className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 print:grid-cols-2 print:gap-x-10 print:gap-y-16">
                 {carregando ? (
                     <div className="col-span-full text-center py-20 animate-pulse font-black uppercase text-slate-800 tracking-[5px]">Sincronizando...</div>
                 ) : (
                     funcionarios.map((func) => (
                         <div
                             key={func.id}
-                            className="relative mx-auto w-[280px] h-[420px] bg-white text-black border-2 border-slate-200 rounded-[20px] overflow-hidden shadow-2xl print:shadow-none print:border-black print:break-inside-avoid"
+                            className="relative mx-auto w-[320px] h-[480px] bg-white text-black border-[3px] border-slate-100 rounded-[30px] overflow-hidden shadow-2xl print:shadow-none print:border-black print:break-inside-avoid"
                         >
-                            {/* Detalhe do Furo do Cordão */}
-                            <div className="absolute top-4 left-1/2 -translate-x-1/2 w-10 h-3 bg-slate-100 rounded-full border border-slate-200 print:border-black"></div>
+                            {/* Slot do Cordão */}
+                            <div className="absolute top-5 left-1/2 -translate-x-1/2 w-12 h-3.5 bg-slate-50 rounded-full border border-slate-200 print:border-black"></div>
 
-                            {/* Topo / Logo */}
-                            <div className="pt-12 pb-4 text-center">
-                                <h2 className="text-xl font-black uppercase italic leading-none tracking-tighter">GR <span className="text-orange-600">Autopeças</span></h2>
-                                <p className="text-[7px] font-bold text-slate-400 uppercase tracking-[3px]">Controle de Acesso</p>
+                            {/* Logo GR Autopeças */}
+                            <div className="pt-14 pb-4 text-center">
+                                <h2 className="text-2xl font-black uppercase italic leading-none tracking-tighter">GR <span className="text-orange-600">Autopeças</span></h2>
+                                <div className="h-1 w-12 bg-orange-500 mx-auto mt-2"></div>
                             </div>
 
-                            {/* Foto / Avatar */}
-                            <div className="flex justify-center my-2">
-                                <div className="w-24 h-24 bg-slate-100 border-4 border-orange-500 rounded-full flex items-center justify-center text-4xl font-black text-slate-300 italic">
+                            {/* Avatar Central */}
+                            <div className="flex justify-center my-4">
+                                <div className="w-28 h-28 bg-slate-50 border-[6px] border-orange-500 rounded-full flex items-center justify-center text-5xl font-black text-slate-200 italic shadow-lg">
                                     {func.nome.charAt(0)}
                                 </div>
                             </div>
 
-                            {/* Informações */}
-                            <div className="text-center px-4 mt-2">
-                                <h3 className="text-2xl font-black uppercase italic leading-tight text-black">
-                                    {func.nome} <br /> {func.sobrenome}
+                            {/* Informações do Funcionário */}
+                            <div className="text-center px-6 mt-2">
+                                <h3 className="text-3xl font-black uppercase italic leading-none text-black mb-2">
+                                    {func.nome} <br />
+                                    <span className="text-2xl">{func.sobrenome}</span>
                                 </h3>
-                                <p className="text-orange-600 text-[10px] font-black uppercase tracking-[4px] mt-1 italic">
+                                <p className="text-orange-600 text-[11px] font-black uppercase tracking-[5px] italic">
                                     {func.cargo}
                                 </p>
                             </div>
 
-                            {/* Área do Código de Barras (Otimizada para Scanner) */}
-                            <div className="absolute bottom-10 left-0 w-full flex flex-col items-center bg-white">
-                                <div className="scale-[1.3] mb-2"> {/* Aumenta o código de barras sem quebrar o layout */}
+                            {/* Área do Barcode - Maximizada */}
+                            <div className="absolute bottom-12 left-0 w-full flex flex-col items-center justify-center bg-white">
+                                <div className="scale-[1.5] origin-center">
                                     <Barcode
                                         value={func.id}
-                                        width={1.2}
-                                        height={50}
+                                        width={1.1}
+                                        height={55}
                                         fontSize={10}
                                         background="#ffffff"
                                         lineColor="#000000"
@@ -99,9 +101,9 @@ function ConteudoCrachas() {
                                 </div>
                             </div>
 
-                            {/* Rodapé do Crachá */}
-                            <div className="absolute bottom-0 w-full h-8 bg-orange-600 flex items-center justify-center">
-                                <p className="text-[7px] font-black text-white uppercase tracking-[3px]">Felinto Tech | VPS Sync</p>
+                            {/* Tarja Inferior */}
+                            <div className="absolute bottom-0 w-full h-10 bg-orange-600 flex flex-col items-center justify-center">
+                                <p className="text-[8px] font-black text-white uppercase tracking-[4px]">Acesso Autorizado • VPS Sync</p>
                             </div>
                         </div>
                     ))
@@ -110,9 +112,13 @@ function ConteudoCrachas() {
 
             <style jsx global>{`
                 @media print {
-                    @page { size: A4; margin: 10mm; }
+                    @page { size: A4; margin: 15mm; }
                     header { display: none !important; }
-                    body { background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    body {
+                        background: white !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
                     main { background: white !important; padding: 0 !important; }
                 }
             `}</style>
