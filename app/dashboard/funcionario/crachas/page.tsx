@@ -105,7 +105,7 @@ function ConteudoCrachas() {
 
                             {/* Base */}
                             <div className="absolute bottom-0 w-full h-10 bg-orange-600 flex flex-col items-center justify-center">
-                                <p className="text-[8px] font-black text-white uppercase tracking-[4px]">Acesso Autorizado • VPS Sync</p>
+                                <p className="text-[8px] font-black text-white uppercase tracking-[4px]">Crachá de Acesso</p>
                             </div>
                         </div>
                     ))
