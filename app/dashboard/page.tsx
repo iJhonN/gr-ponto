@@ -23,31 +23,49 @@ export default function DashboardHome() {
                 </div>
             </header>
 
-            {/* Grid com 6 cards - Perfeito para 2 ou 3 colunas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+            {/* Grid com 8 cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
 
                 {/* CARD FUNCIONÁRIOS */}
                 <MenuCard
                     href="/dashboard/funcionario"
                     title="Equipe"
-                    desc="Lista, Crachás e Gestão"
+                    desc="Lista e Crachás"
                     icon="👤"
                     color="bg-blue-600"
                 />
 
-                {/* CARD FERRAMENTAS */}
+                {/* CARD FERRAMENTAS (ESTOQUE) */}
                 <MenuCard
                     href="/dashboard/ferramenta"
-                    title="Ferramentas"
-                    desc="Estoque, Etiquetas e Uso"
-                    icon="🔧"
+                    title="Estoque"
+                    desc="Peças e Etiquetas"
+                    icon="📦"
                     color="bg-orange-600"
                 />
 
-                {/* CARD REGISTRAR (NOVO) */}
+                {/* TERMINAL DE PONTO (TOTEM) */}
+                <MenuCard
+                    href="/dashboard/ponto"
+                    title="Totem Ponto"
+                    desc="Registrar via Crachá"
+                    icon="⏱️"
+                    color="bg-orange-500"
+                />
+
+                {/* TERMINAL DE RETIRADA */}
+                <MenuCard
+                    href="/dashboard/retirada"
+                    title="Retirada"
+                    desc="Saída de Peças"
+                    icon="🔧"
+                    color="bg-blue-500"
+                />
+
+                {/* CARD REGISTRAR (MANUAL) */}
                 <MenuCard
                     href="/dashboard/registrar"
-                    title="Lançamentos"
+                    title="Ajustes"
                     desc="Pausas e Extras Manuais"
                     icon="✍️"
                     color="bg-indigo-600"
@@ -57,7 +75,7 @@ export default function DashboardHome() {
                 <MenuCard
                     href="/dashboard/atrasos"
                     title="Atrasos"
-                    desc="Relatório de Inconsistências"
+                    desc="Inconsistências"
                     icon="⚠️"
                     color="bg-red-600"
                 />
@@ -65,8 +83,8 @@ export default function DashboardHome() {
                 {/* CARD HORAS EXTRAS */}
                 <MenuCard
                     href="/dashboard/he"
-                    title="Horas Extras"
-                    desc="Fechamento de Adicionais"
+                    title="Fechamento"
+                    desc="Cálculo de Extras"
                     icon="💰"
                     color="bg-green-600"
                 />
@@ -74,8 +92,8 @@ export default function DashboardHome() {
                 {/* CARD CALENDÁRIO */}
                 <MenuCard
                     href="/dashboard/calendario"
-                    title="Calendário"
-                    desc="Visão Mensal de Pontos"
+                    title="Espelho"
+                    desc="Visão Mensal"
                     icon="📅"
                     color="bg-slate-800"
                 />
@@ -86,12 +104,12 @@ export default function DashboardHome() {
 
 function MenuCard({ href, title, desc, icon, color }: MenuCardProps) {
     return (
-        <Link href={href} className="group bg-slate-900 border border-white/5 p-8 rounded-[45px] hover:border-white/20 transition-all active:scale-95">
-            <div className={`${color} w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-xl group-hover:rotate-6 transition-transform`}>
+        <Link href={href} className="group bg-slate-900 border border-white/5 p-6 rounded-[40px] hover:border-white/20 transition-all active:scale-95 flex flex-col items-center text-center">
+            <div className={`${color} w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-xl group-hover:rotate-6 transition-transform`}>
                 {icon}
             </div>
-            <h2 className="text-2xl font-black uppercase italic leading-none mb-2">{title}</h2>
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-widest">{desc}</p>
+            <h2 className="text-lg font-black uppercase italic leading-none mb-2">{title}</h2>
+            <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-tight">{desc}</p>
         </Link>
     );
 }
