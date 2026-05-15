@@ -14,28 +14,28 @@ export default function PontoPeloSite() {
     const [carregando, setCarregando] = useState(false);
     const [horaAtual, setHoraAtual] = useState("");
 
-    // Referência para o campo de input invisível que o leitor vai usar
     const inputRef = useRef<HTMLInputElement>(null);
     const [barcode, setBarcode] = useState("");
 
-    // Relógio
+    // Relógio em tempo real
     useEffect(() => {
         const timer = setInterval(() => setHoraAtual(new Date().toLocaleTimeString('pt-BR')), 1000);
         return () => clearInterval(timer);
     }, []);
 
-    // Carrega funcionários
+    // Carrega funcionários para validação local de nome
     useEffect(() => {
         const carregar = async () => {
             const baseUrl = process.env.NEXT_PUBLIC_API_URL;
             try {
+                // Rota corrigida para /funcionarios
                 const res = await fetch(`${baseUrl}/funcionarios`);
                 if (res.ok) setFuncionarios(await res.json());
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Erro ao carregar lista de equipe:", e); }
         };
         carregar();
 
-        // Mantém o foco no input do leitor o tempo todo
+        // Foco automático no campo
         const focusInput = () => inputRef.current?.focus();
         document.addEventListener('click', focusInput);
         focusInput();
@@ -51,7 +51,8 @@ export default function PontoPeloSite() {
         const nomeParaExibir = funcionario ? `${funcionario.nome}` : `ID: ${id}`;
 
         try {
-            const res = await fetch(`${baseUrl}/ponto`, {
+            // ROTA CORRIGIDA: de /ponto para /pontos conforme sua estrutura na VPS
+            const res = await fetch(`${baseUrl}/pontos`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ funcionarioId: id, modo: 'totem' })
@@ -62,13 +63,13 @@ export default function PontoPeloSite() {
                 setStatus({ msg: `Olá, ${nomeParaExibir}! ${data.obs}`, tipo: 'sucesso' });
                 setTimeout(() => setStatus({ msg: '', tipo: null }), 4000);
             } else {
-                setStatus({ msg: "Erro ao identificar crachá.", tipo: 'erro' });
+                setStatus({ msg: data.error || "Erro ao identificar crachá.", tipo: 'erro' });
             }
         } catch (error) {
             setStatus({ msg: "Erro de conexão VPS", tipo: 'erro' });
         } finally {
             setCarregando(false);
-            setBarcode(""); // Limpa para o próximo bipe
+            setBarcode(""); // Limpa o campo para o próximo
         }
     };
 
@@ -80,73 +81,66 @@ export default function PontoPeloSite() {
 
     return (
         <div className="min-h-screen bg-[#050505] text-white p-6 flex flex-col items-center justify-center font-sans overflow-hidden">
-            {/* Input Invisível para o Leitor */}
-            <input
-                ref={inputRef}
-                type="text"
-                className="absolute opacity-0 pointer-events-none"
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                onKeyDown={handleKeyDown}
-                autoFocus
-            />
 
             <div className="w-full max-w-2xl bg-slate-900/30 border border-white/5 p-12 rounded-[60px] text-center backdrop-blur-2xl relative overflow-hidden">
-                {/* Efeito de Scan na tela */}
                 <div className="absolute top-0 left-0 w-full h-1 bg-orange-500/20 animate-scan"></div>
 
-                <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-12 block hover:opacity-70">← Dashboard</Link>
+                <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-12 block hover:opacity-70 transition-all">← Painel Admin</Link>
 
                 <h1 className="text-6xl font-black italic uppercase mb-2 tracking-tighter">Totem <span className="text-orange-500">Digital</span></h1>
-                <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[8px] mb-12">Aproxime o Crachá do Leitor</p>
+                <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[8px] mb-12">Aproxime o crachá ou digite o código</p>
 
-                <div className="bg-black/40 rounded-[40px] py-12 mb-12 border border-white/5 shadow-inner">
+                <div className="bg-black/40 rounded-[40px] py-12 mb-8 border border-white/5 shadow-inner">
                     <span className="text-7xl font-mono font-black text-orange-500 tracking-tighter leading-none block">{horaAtual || "00:00:00"}</span>
+                </div>
+
+                {/* CAMPO DE DIGITAÇÃO VISÍVEL (Híbrido: Teclado + Scanner) */}
+                <div className="relative max-w-xs mx-auto mb-8">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        placeholder="CÓDIGO"
+                        className="w-full bg-white/5 border-2 border-white/10 p-5 rounded-3xl text-center text-2xl font-black uppercase tracking-[5px] outline-none focus:border-orange-500 focus:bg-white/10 transition-all"
+                        value={barcode}
+                        onChange={(e) => setBarcode(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        autoFocus
+                    />
+                    <div className="mt-2 text-[8px] font-black uppercase text-slate-600 tracking-widest">
+                        Pressione Enter para confirmar
+                    </div>
                 </div>
 
                 <div className="flex flex-col items-center gap-6">
                     {carregando ? (
                         <div className="animate-pulse text-orange-500 font-black uppercase italic tracking-[10px] text-xl py-4">Validando...</div>
                     ) : (
-                        <div className="w-20 h-20 border-4 border-dashed border-white/10 rounded-full flex items-center justify-center animate-spin-slow">
-                            <span className="text-2xl opacity-20">📡</span>
-                        </div>
-                    )}
-
-                    {status.msg && (
-                        <div className={`w-full p-8 rounded-3xl font-black uppercase italic text-sm transition-all animate-bounce-short ${
-                            status.tipo === 'sucesso' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-red-600 text-white'
-                        }`}>
-                            {status.msg}
-                        </div>
+                        status.msg ? (
+                            <div className={`w-full p-8 rounded-3xl font-black uppercase italic text-sm transition-all animate-bounce-short ${
+                                status.tipo === 'sucesso' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'bg-red-600 text-white'
+                            }`}>
+                                {status.msg}
+                            </div>
+                        ) : (
+                            <div className="w-16 h-16 border-4 border-dashed border-white/10 rounded-full flex items-center justify-center animate-spin-slow">
+                                <span className="text-xl opacity-20">📡</span>
+                            </div>
+                        )
                     )}
                 </div>
             </div>
 
             <footer className="mt-12 flex items-center gap-4 opacity-20">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <p className="text-[10px] font-black uppercase tracking-[5px]">Scanner Ready: GR-API Active</p>
+                <p className="text-[10px] font-black uppercase tracking-[5px]">Endpoint: /pontos • GR-API Active</p>
             </footer>
 
             <style jsx>{`
-                @keyframes scan {
-                    0% { top: 0; }
-                    100% { top: 100%; }
-                }
-                .animate-scan {
-                    position: absolute;
-                    animation: scan 3s linear infinite;
-                }
-                @keyframes bounce-short {
-                    0%, 100% { transform: translateY(0); }
-                    50% { transform: translateY(-5px); }
-                }
-                .animate-bounce-short {
-                    animation: bounce-short 0.5s ease-in-out;
-                }
-                .animate-spin-slow {
-                    animation: spin 8s linear infinite;
-                }
+                @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+                .animate-scan { position: absolute; animation: scan 3s linear infinite; }
+                @keyframes bounce-short { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+                .animate-bounce-short { animation: bounce-short 0.5s ease-in-out; }
+                .animate-spin-slow { animation: spin 8s linear infinite; }
             `}</style>
         </div>
     );
