@@ -9,7 +9,7 @@ interface Funcionario {
 }
 
 interface Ferramenta {
-    id: string; // ou codigo
+    id: string; // Mapeia diretamente com o id do MongoDB
     nome: string;
 }
 
@@ -38,14 +38,14 @@ export default function RetiradaDevolucao() {
         return () => document.removeEventListener('click', focus);
     }, []);
 
-    // Sincroniza as duas tabelas da VPS (Funcionários e Ferramentas) logo ao abrir a página
+    // Sincroniza funcionários e ferramentas da VPS ao abrir a tela
     useEffect(() => {
         const carregarDadosIniciais = async () => {
             if (!baseUrl) return;
             try {
                 const [resFunc, resFerramentas] = await Promise.all([
                     fetch(`${baseUrl}/funcionarios`, { cache: 'no-store' }),
-                    fetch(`${baseUrl}/ferramentas`, { cache: 'no-store' }) // Puxa os dados da rota /ferramentas
+                    fetch(`${baseUrl}/ferramentas`, { cache: 'no-store' })
                 ]);
 
                 if (resFunc.ok) setFuncionarios(await resFunc.json());
@@ -65,7 +65,7 @@ export default function RetiradaDevolucao() {
         if (etapa === 'colaborador') {
             setCarregando(true);
 
-            // Valida se o colaborador existe localmente para evitar requests desnecessários
+            // Valida se o colaborador existe
             const f = funcionarios.find((func) => String(func.id) === codLimpo);
 
             if (f) {
@@ -80,7 +80,7 @@ export default function RetiradaDevolucao() {
         } else {
             setCarregando(true);
 
-            // VALIDAÇÃO INTELIGENTE: Confere se a peça existe na lista carregada da rota /ferramentas
+            // VALIDAÇÃO LOCAL: Confere se a peça existe na lista carregada da rota /ferramentas
             const itemExiste = ferramentas.some((item) => String(item.id) === codLimpo);
 
             if (!itemExiste) {
@@ -90,25 +90,38 @@ export default function RetiradaDevolucao() {
                 return;
             }
 
-            // Se a peça existir, segue para gravar o histórico em /ferramentas/movimentacao
+            // Se a peça existir, manda os dados exatamente como a rota /ferramentas/movimentacao pede
             try {
+                const dataAgoraISO = new Date().toISOString();
+
                 const res = await fetch(`${baseUrl}/ferramentas/movimentacao`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         funcionarioId: dados.funcionarioId,
-                        itemCodigo: codLimpo
+                        ferramentaId: codLimpo, // CORRIGIDO: nome esperado pela API na VPS
+                        data: dataAgoraISO     // CORRIGIDO: enviando a data para o banco
                     })
                 });
 
                 const resultado = await res.json();
 
                 if (res.ok) {
-                    const acao = resultado.tipo === 'retirada' ? 'RETIRADA' : 'DEVOLUÇÃO';
+                    // CORRIGIDO: Sua API responde { status: "retirada" } ou "devolucao"
+                    const acao = resultado.status === 'retirada' ? 'RETIRADA' : 'DEVOLUÇÃO';
+
                     setStatus({
                         msg: `${acao} CONCLUÍDA: ${codLimpo}`,
                         tipo: 'sucesso'
                     });
+
+                    // Recarrega a lista de ferramentas para atualizar os status locais na memória
+                    if (baseUrl) {
+                        fetch(`${baseUrl}/ferramentas`, { cache: 'no-store' })
+                            .then(r => r.ok && r.json())
+                            .then(d => d && setFerramentas(d))
+                            .catch(e => console.error(e));
+                    }
 
                     setTimeout(() => {
                         setEtapa('colaborador');
@@ -184,7 +197,7 @@ export default function RetiradaDevolucao() {
 
             <footer className="mt-12 text-[9px] font-black uppercase opacity-20 tracking-[6px] flex items-center gap-3">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                Endpoints: /ferramentas & /movimentacao • GR-API Active
+                Endpoints Ativos: /ferramentas & /ferramentas/movimentacao
             </footer>
         </div>
     );
