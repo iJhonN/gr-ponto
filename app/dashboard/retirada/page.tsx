@@ -5,13 +5,16 @@ import Link from 'next/link';
 export default function RetiradaDevolucao() {
     const [etapa, setEtapa] = useState<'colaborador' | 'item'>('colaborador');
     const [dados, setDados] = useState({ funcionarioId: '', funcionarioNome: '' });
-    const [status, setStatus] = useState({ msg: 'Aproxime o Crachá do Colaborador', tipo: 'foco' });
+    const [status, setStatus] = useState<{ msg: string; tipo: 'foco' | 'sucesso' | 'erro' | 'info' }>({
+        msg: 'Aproxime o Crachá do Colaborador',
+        tipo: 'foco'
+    });
     const [carregando, setCarregando] = useState(false);
 
     const inputRef = useRef<HTMLInputElement>(null);
     const [barcode, setBarcode] = useState("");
 
-    // Foco constante no leitor
+    // Foco constante no input híbrido (leitor/teclado)
     useEffect(() => {
         const focus = () => inputRef.current?.focus();
         document.addEventListener('click', focus);
@@ -22,7 +25,7 @@ export default function RetiradaDevolucao() {
     const processarLeitura = async (codigo: string) => {
         if (!codigo) return;
         const codLimpo = codigo.trim();
-        setBarcode("");
+        setBarcode(""); // Limpa o campo para a próxima digitação ou bipe
 
         const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
@@ -36,7 +39,7 @@ export default function RetiradaDevolucao() {
                 if (f) {
                     setDados({ funcionarioId: codLimpo, funcionarioNome: `${f.nome} ${f.sobrenome}` });
                     setEtapa('item');
-                    setStatus({ msg: `Olá ${f.nome}! Bipe a Peça ou Ferramenta`, tipo: 'info' });
+                    setStatus({ msg: `Olá ${f.nome}! Bipe ou digite a Peça/Ferramenta`, tipo: 'info' });
                 } else {
                     setStatus({ msg: 'Crachá não reconhecido', tipo: 'erro' });
                     setTimeout(() => setStatus({ msg: 'Aproxime o Crachá do Colaborador', tipo: 'foco' }), 2000);
@@ -47,10 +50,11 @@ export default function RetiradaDevolucao() {
                 setCarregando(false);
             }
         } else {
-            // ETAPA DO ITEM: Lógica de Retirada ou Devolução
+            // ETAPA DO ITEM: Lógica de Movimentação (Retirada ou Devolução)
             setCarregando(true);
             try {
-                const res = await fetch(`${baseUrl}/ferramentas/movimentar`, {
+                // ROTA CORRIGIDA: Apontando exatamente para /ferramentas/movimentacao na sua VPS
+                const res = await fetch(`${baseUrl}/ferramentas/movimentacao`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -62,7 +66,7 @@ export default function RetiradaDevolucao() {
                 const resultado = await res.json();
 
                 if (res.ok) {
-                    // A VPS deve retornar se foi 'retirada' ou 'devolucao'
+                    // VPS processa se o item estava na rua ou não e retorna o tipo da ação
                     const acao = resultado.tipo === 'retirada' ? 'RETIRADA' : 'DEVOLUÇÃO';
                     setStatus({
                         msg: `${acao} CONCLUÍDA: ${codLimpo}`,
@@ -88,15 +92,6 @@ export default function RetiradaDevolucao() {
 
     return (
         <div className="min-h-screen bg-[#050505] text-white p-6 flex flex-col items-center justify-center font-sans">
-            <input
-                ref={inputRef}
-                type="text"
-                className="absolute opacity-0 pointer-events-none"
-                value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && processarLeitura(barcode)}
-                autoFocus
-            />
 
             <div className="w-full max-w-2xl bg-slate-900/20 border border-white/5 p-12 rounded-[60px] text-center backdrop-blur-3xl relative overflow-hidden shadow-2xl">
                 <div className={`absolute top-0 left-0 w-full h-1 animate-scan ${etapa === 'colaborador' ? 'bg-blue-500' : 'bg-orange-500'}`}></div>
@@ -108,7 +103,7 @@ export default function RetiradaDevolucao() {
                 </h1>
                 <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[8px] mb-12 italic">GR Autopeças • Controle de Uso</p>
 
-                <div className="bg-black/60 rounded-[45px] py-16 mb-12 border border-white/5 shadow-inner">
+                <div className="bg-black/60 rounded-[45px] py-12 mb-8 border border-white/5 shadow-inner">
                     <div className="text-8xl mb-6 transition-all duration-500 transform">
                         {carregando ? '⏳' : (etapa === 'colaborador' ? '👤' : '🛠️')}
                     </div>
@@ -118,11 +113,30 @@ export default function RetiradaDevolucao() {
                     }`}>
                         {status.msg}
                     </p>
-                    {etapa === 'item' && (
+                    {etapa === 'item' && !carregando && (
                         <p className="text-[10px] text-blue-400 font-bold uppercase mt-4 tracking-widest animate-pulse">
                             Operador: {dados.funcionarioNome}
                         </p>
                     )}
+                </div>
+
+                {/* CAMPO DE DIGITAÇÃO VISÍVEL (Híbrido: Teclado + Scanner) */}
+                <div className="relative max-w-xs mx-auto mb-8">
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        placeholder={etapa === 'colaborador' ? "CRACHÁ" : "CÓD. ITEM"}
+                        className={`w-full bg-white/5 border-2 p-5 rounded-3xl text-center text-2xl font-black uppercase tracking-[5px] outline-none transition-all ${
+                            etapa === 'colaborador' ? 'border-blue-500/30 focus:border-blue-500' : 'border-orange-500/30 focus:border-orange-500'
+                        }`}
+                        value={barcode}
+                        onChange={(e) => setBarcode(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && processarLeitura(barcode)}
+                        autoFocus
+                    />
+                    <div className="mt-2 text-[8px] font-black uppercase text-slate-600 tracking-widest">
+                        Bipe ou digite o código e pressione Enter
+                    </div>
                 </div>
 
                 <div className="flex justify-center gap-3">
@@ -133,13 +147,8 @@ export default function RetiradaDevolucao() {
 
             <footer className="mt-12 text-[9px] font-black uppercase opacity-20 tracking-[6px] flex items-center gap-3">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                Scanner Online: Pronto para leitura
+                Endpoint: /ferramentas/movimentacao • GR-API Active
             </footer>
-
-            <style jsx>{`
-                @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
-                .animate-scan { position: absolute; animation: scan 3s linear infinite; }
-            `}</style>
         </div>
     );
 }
