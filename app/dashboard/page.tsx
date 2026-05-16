@@ -8,6 +8,7 @@ interface MenuCardProps {
     desc: string;
     icon: string;
     color: string;
+    destaque?: boolean;
 }
 
 export default function DashboardHome() {
@@ -23,8 +24,28 @@ export default function DashboardHome() {
                 </div>
             </header>
 
-            {/* Grid com 8 cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+            {/* Grid Principal - 8 cards com destaque nos dois primeiros */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto items-start">
+
+                {/* 1º PRINCIPAL: TERMINAL DE PONTO (TOTEM) */}
+                <MenuCard
+                    href="/dashboard/ponto"
+                    title="Totem Ponto"
+                    desc="Registrar via Crachá / Código"
+                    icon="⏱️"
+                    color="bg-orange-500 shadow-lg shadow-orange-500/20"
+                    destaque={true}
+                />
+
+                {/* 2º PRINCIPAL: TERMINAL DE RETIRADA */}
+                <MenuCard
+                    href="/dashboard/retirada"
+                    title="Retirada"
+                    desc="Saída e devolução de ferramentas"
+                    icon="🔧"
+                    color="bg-blue-500 shadow-lg shadow-blue-500/20"
+                    destaque={true}
+                />
 
                 {/* CARD FUNCIONÁRIOS */}
                 <MenuCard
@@ -42,24 +63,6 @@ export default function DashboardHome() {
                     desc="Ferramentas e Etiquetas"
                     icon="📦"
                     color="bg-orange-600"
-                />
-
-                {/* TERMINAL DE PONTO (TOTEM) */}
-                <MenuCard
-                    href="/dashboard/ponto"
-                    title="Totem Ponto"
-                    desc="Registrar via Crachá"
-                    icon="⏱️"
-                    color="bg-orange-500"
-                />
-
-                {/* TERMINAL DE RETIRADA */}
-                <MenuCard
-                    href="/dashboard/retirada"
-                    title="Retirada"
-                    desc="Saída e devolução de ferramentas"
-                    icon="🔧"
-                    color="bg-blue-500"
                 />
 
                 {/* CARD REGISTRAR (MANUAL) */}
@@ -102,13 +105,20 @@ export default function DashboardHome() {
     );
 }
 
-function MenuCard({ href, title, desc, icon, color }: MenuCardProps) {
+function MenuCard({ href, title, desc, icon, color, destaque = false }: MenuCardProps) {
     return (
-        <Link href={href} className="group bg-slate-900 border border-white/5 p-6 rounded-[40px] hover:border-white/20 transition-all active:scale-95 flex flex-col items-center text-center">
-            <div className={`${color} w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-xl group-hover:rotate-6 transition-transform`}>
+        <Link
+            href={href}
+            className={`group transition-all active:scale-95 flex flex-col items-center text-center ${
+                destaque
+                    ? `bg-slate-850 border-2 ${href.includes('ponto') ? 'border-orange-500/40 hover:border-orange-500' : 'border-blue-500/40 hover:border-blue-500'} p-7 rounded-[40px] lg:scale-105 z-10 shadow-2xl`
+                    : 'bg-slate-900 border border-white/5 p-6 rounded-[40px] hover:border-white/20'
+            }`}
+        >
+            <div className={`${color} ${destaque ? 'w-16 h-16 text-3xl' : 'w-14 h-14 text-2xl'} rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:rotate-6`}>
                 {icon}
             </div>
-            <h2 className="text-lg font-black uppercase italic leading-none mb-2">{title}</h2>
+            <h2 className={`${destaque ? 'text-xl' : 'text-lg'} font-black uppercase italic leading-none mb-2`}>{title}</h2>
             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest leading-tight">{desc}</p>
         </Link>
     );
