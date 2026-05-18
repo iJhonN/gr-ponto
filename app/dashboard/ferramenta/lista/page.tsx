@@ -84,7 +84,7 @@ export default function ListaFerramentasAdmin() {
                                     type="text"
                                     value={nomeNova}
                                     onChange={(e) => setNomeNova(e.target.value)}
-                                    placeholder="Ex: Chave de Impacto"
+                                    placeholder=" "
                                     className="w-full bg-black border border-white/5 p-4 rounded-2xl outline-none focus:border-orange-500 transition-all font-bold text-sm mt-2 text-white"
                                 />
                             </div>
@@ -101,9 +101,6 @@ export default function ListaFerramentasAdmin() {
                                 </select>
                             </div>
 
-                            <button className="w-full bg-orange-600 hover:bg-orange-500 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 shadow-lg shadow-orange-900/20">
-                                Adicionar ao Estoque
-                            </button>
                         </div>
                     </form>
                 </aside>
