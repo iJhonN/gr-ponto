@@ -75,11 +75,11 @@ export default function ListaFerramentasAdmin() {
                 {/* COLUNA ESQUERDA: FORMULÁRIO DE CADASTRO */}
                 <aside className="lg:col-span-1">
                     <form onSubmit={handleCadastrar} className="bg-slate-900/50 border border-white/5 p-8 rounded-[40px] sticky top-8">
-                        <h2 className="text-sm font-black uppercase italic mb-6 tracking-widest text-white">Novo Item</h2>
+                        <h2 className="text-sm font-black uppercase italic mb-6 tracking-widest text-white"> </h2>
 
                         <div className="space-y-6">
                             <div>
-                                <label className="text-[10px] font-black uppercase text-slate-500 ml-2">Nome da Ferramenta</label>
+                                <label className="text-[10px] font-black uppercase text-slate-500 ml-2"> </label>
                                 <input
                                     type="text"
                                     value={nomeNova}
@@ -90,14 +90,14 @@ export default function ListaFerramentasAdmin() {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-black uppercase text-slate-500 ml-2">Status Inicial</label>
+                                <label className="text-[10px] font-black uppercase text-slate-500 ml-2"> </label>
                                 <select
                                     value={statusNovo}
                                     onChange={(e) => setStatusNovo(e.target.value as any)}
                                     className="w-full bg-black border border-white/5 p-4 rounded-2xl outline-none focus:border-orange-500 transition-all font-bold text-sm mt-2 appearance-none text-white cursor-pointer"
                                 >
-                                    <option value="disponivel">✓ Disponível</option>
-                                    <option value="em_uso">⚠ Já em Uso</option>
+                                    <option value="disponivel"> </option>
+                                    <option value="em_uso"> </option>
                                 </select>
                             </div>
 
