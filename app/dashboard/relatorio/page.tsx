@@ -12,9 +12,10 @@ interface Funcionario {
 interface RegistroPonto {
     _id?: string;
     funcionarioId: string;
-    data: string;          // Data salva pela API
-    horaFormatada: string; // Ex: "08:15" (Gerado pela sua API)
-    tipo: string;          // 'entrada', 'saida', 'extra', 'alerta', 'normal'
+    data: string;
+    horaFormatada: string;
+    tipo: string;
+    minutosAjuste?: number;
     origem: 'totem' | 'admin';
 }
 
@@ -22,6 +23,7 @@ function ConteudoRelatorio() {
     const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
     const [pontos, setPontos] = useState<RegistroPonto[]>([]);
     const [carregando, setCarregando] = useState(true);
+    const [pesquisa, setPesquisa] = useState('');
 
     const dataAtual = new Date();
     const [mesSelecionado, setMesSelecionado] = useState(dataAtual.getMonth() + 1);
@@ -34,7 +36,6 @@ function ConteudoRelatorio() {
             if (!baseUrl) return;
             setCarregando(true);
             try {
-                // ROTA CORRIGIDA: Buscando na rota exata coletada na VPS (/pontos)
                 const [resFunc, resPontos] = await Promise.all([
                     fetch(`${baseUrl}/funcionarios`, { cache: 'no-store' }),
                     fetch(`${baseUrl}/pontos`, { cache: 'no-store' })
@@ -56,7 +57,6 @@ function ConteudoRelatorio() {
         return Array.from({ length: qtdDias }, (_, i) => i + 1);
     };
 
-    // Mapeia e organiza cronologicamente as batidas usando os dados REAIS da sua API
     const obterJornadaDiaria = (funcionarioId: string, dia: number) => {
         const pontosDoDia = pontos.filter(p => {
             const dataPonto = new Date(p.data);
@@ -68,46 +68,85 @@ function ConteudoRelatorio() {
             );
         });
 
-        // Ordena por horário para garantir a sequência correta de batidas (01º ao 04º bipe)
-        pontosDoDia.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
+        const totalMinutosPausa = pontosDoDia
+            .filter(p => p.tipo === 'pausa')
+            .reduce((soma, p) => soma + (p.minutosAjuste || 0), 0);
+
+        const batidasNormais = pontosDoDia.filter(p => p.tipo !== 'pausa');
+        batidasNormais.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
 
         return {
-            entrada: pontosDoDia[0] ? pontosDoDia[0].horaFormatada : '---',
-            saidaAlmoço: pontosDoDia[1] ? pontosDoDia[1].horaFormatada : '---',
-            voltaAlmoço: pontosDoDia[2] ? pontosDoDia[2].horaFormatada : '---',
-            saidaFinal: pontosDoDia[3] ? pontosDoDia[3].horaFormatada : '---',
+            entrada: batidasNormais[0] ? batidasNormais[0].horaFormatada : '---',
+            saidaAlmoço: batidasNormais[1] ? batidasNormais[1].horaFormatada : '---',
+            voltaAlmoço: batidasNormais[2] ? batidasNormais[2].horaFormatada : '---',
+            saidaFinal: batidasNormais[3] ? batidasNormais[3].horaFormatada : '---',
+            totalPausa: totalMinutosPausa > 0 ? `${totalMinutosPausa} min` : '---'
         };
     };
 
     const diasDoMes = obterDiasDoMes();
 
+    // Filtro inteligente por Nome, Sobrenome ou ID
+    const funcionariosFiltrados = funcionarios.filter(func => {
+        const termo = pesquisa.toLowerCase().trim();
+        if (!termo) return true;
+
+        const nomeCompleto = `${func.nome} ${func.sobrenome}`.toLowerCase();
+        const idFuncionario = String(func.id).toLowerCase();
+
+        return nomeCompleto.includes(termo) || idFuncionario.includes(termo);
+    });
+
     return (
         <main className="min-h-screen bg-black text-white p-4 font-sans print:bg-white print:text-black print:p-0">
 
             {/* PAINEL DE CONTROLE WEB */}
-            <header className="max-w-6xl mx-auto mb-6 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/40 p-4 rounded-[20px] border border-white/5 print:hidden">
-                <div>
-                    <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-1 block hover:opacity-70 transition-all">← Dashboard</Link>
-                    <h1 className="text-2xl font-black uppercase italic text-white leading-none">Fechamento <span className="text-orange-500">Mensal</span></h1>
-                </div>
+            <header className="max-w-6xl mx-auto mb-6 bg-slate-900/40 p-5 rounded-[25px] border border-white/5 print:hidden">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                    <div>
+                        <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-1 block hover:opacity-70 transition-all">← Dashboard</Link>
+                        <h1 className="text-2xl font-black uppercase italic text-white leading-none">Fechamento <span className="text-orange-500">Mensal</span></h1>
+                    </div>
 
-                <div className="flex items-center gap-4">
-                    <select
-                        value={mesSelecionado}
-                        onChange={(e) => setMesSelecionado(Number(e.target.value))}
-                        className="bg-black border border-white/10 px-3 py-1.5 rounded-xl font-bold text-white outline-none focus:border-orange-500 text-sm"
-                    >
-                        {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                            <option key={m} value={m}>Mês {String(m).padStart(2, '0')}</option>
-                        ))}
-                    </select>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+                        {/* CAMPO DE PESQUISA ADICIONADO */}
+                        <div className="relative flex-1 sm:w-64">
+                            <input
+                                type="text"
+                                placeholder="Buscar por nome ou ID..."
+                                value={pesquisa}
+                                onChange={(e) => setPesquisa(e.target.value)}
+                                className="w-full bg-black border border-white/10 pl-4 pr-10 py-2 rounded-xl font-bold text-white text-sm outline-none focus:border-orange-500 transition-all placeholder-slate-500"
+                            />
+                            {pesquisa && (
+                                <button
+                                    onClick={() => setPesquisa('')}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white font-bold text-xs"
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
 
-                    <button
-                        onClick={() => window.print()}
-                        className="bg-orange-600 px-5 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-500 transition-all shadow-md shadow-orange-900/20"
-                    >
-                        🖨️ Imprimir Folhas
-                    </button>
+                        {/* Filtro de Mês */}
+                        <select
+                            value={mesSelecionado}
+                            onChange={(e) => setMesSelecionado(Number(e.target.value))}
+                            className="bg-black border border-white/10 px-3 py-2 rounded-xl font-bold text-white outline-none focus:border-orange-500 text-sm cursor-pointer"
+                        >
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                                <option key={m} value={m}>Mês {String(m).padStart(2, '0')}</option>
+                            ))}
+                        </select>
+
+                        {/* Botão Imprimir */}
+                        <button
+                            onClick={() => window.print()}
+                            className="bg-orange-600 px-5 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-500 transition-all shadow-md shadow-orange-900/20"
+                        >
+                            🖨️ Imprimir
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -115,8 +154,12 @@ function ConteudoRelatorio() {
             <section className="max-w-5xl mx-auto flex flex-col gap-8 print:gap-0">
                 {carregando ? (
                     <div className="text-center py-20 animate-pulse font-black uppercase text-slate-800 tracking-[5px] print:hidden">Sincronizando Banco de Dados...</div>
+                ) : funcionariosFiltrados.length === 0 ? (
+                    <div className="text-center py-20 border border-dashed border-white/10 rounded-[30px] text-slate-500 font-bold text-sm print:hidden">
+                        Nenhum colaborador encontrado para "{pesquisa}".
+                    </div>
                 ) : (
-                    funcionarios.map((func) => (
+                    funcionariosFiltrados.map((func) => (
                         <div
                             key={func.id}
                             className="bg-white text-black p-6 mb-8 border border-slate-200 rounded-[30px] print:border-none print:p-0 print:m-0 print:break-inside-avoid print:page-break-after-always bg-white"
@@ -154,6 +197,7 @@ function ConteudoRelatorio() {
                                         <th className="py-1 px-1.5 w-14 text-center">Saída Alm</th>
                                         <th className="py-1 px-1.5 w-14 text-center">Volta Alm</th>
                                         <th className="py-1 px-1.5 w-14 text-center">Saída Fim</th>
+                                        <th className="py-1 px-1.5 w-16 text-center text-orange-600 print:text-black">Total Pausa</th>
                                         <th className="py-1 px-2 text-right">Assinatura / Justificativa Ocorrência</th>
                                     </tr>
                                     </thead>
@@ -177,6 +221,9 @@ function ConteudoRelatorio() {
                                                 <td className={`py-0.5 px-1.5 font-mono text-center font-bold w-14 ${jornada.saidaFinal !== '---' ? 'text-black' : 'text-slate-300 print:text-slate-400'}`}>
                                                     {jornada.saidaFinal}
                                                 </td>
+                                                <td className={`py-0.5 px-1.5 font-mono text-center font-bold w-16 ${jornada.totalPausa !== '---' ? 'text-orange-600 print:text-black font-black' : 'text-slate-300 print:text-slate-400'}`}>
+                                                    {jornada.totalPausa}
+                                                </td>
                                                 <td className="py-0.5 px-2 border-l border-dashed border-slate-200 print:border-slate-300"></td>
                                             </tr>
                                         );
@@ -185,7 +232,7 @@ function ConteudoRelatorio() {
                                 </table>
                             </div>
 
-                            {/* ASSINATURAS DO RODAPÉ (AJUSTADAS PARA A BASE DA PÁGINA) */}
+                            {/* ASSINATURAS DO RODAPÉ */}
                             <div className="mt-16 pt-4 border-t border-slate-300 flex justify-between items-center gap-12 print:mt-12">
                                 <div className="w-60 text-center">
                                     <div className="border-b border-black w-full h-6 mb-1"></div>
