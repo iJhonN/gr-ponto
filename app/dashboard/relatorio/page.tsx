@@ -121,9 +121,8 @@ function ConteudoRelatorio() {
                             key={func.id}
                             className="bg-white text-black p-6 mb-8 border border-slate-200 rounded-[30px] print:border-none print:p-0 print:m-0 print:break-inside-avoid print:page-break-after-always bg-white"
                         >
-                            {/* CABEÇALHO INTEGRADO (EMPRESA + FUNCIONÁRIO LADO A LADO) */}
+                            {/* CABEÇALHO INTEGRADO */}
                             <div className="grid grid-cols-2 border-b-2 border-black pb-2 mb-3 text-xs">
-                                {/* Lado Esquerdo: Empresa */}
                                 <div className="pr-4 border-r border-slate-200 print:border-slate-300">
                                     <h2 className="text-base font-black uppercase tracking-tight text-black leading-none mb-0.5">GR AUTOPECAS LTDA</h2>
                                     <p className="text-[10px] font-bold text-slate-700 font-mono mb-0.5">CNPJ: 51.415.349/0001-25</p>
@@ -133,7 +132,6 @@ function ConteudoRelatorio() {
                                     </p>
                                 </div>
 
-                                {/* Lado Direito: Funcionário */}
                                 <div className="pl-4 flex flex-col justify-between text-right">
                                     <div>
                                         <p className="text-[9px] font-black uppercase text-slate-400 tracking-wider leading-none">Colaborador</p>
@@ -146,7 +144,7 @@ function ConteudoRelatorio() {
                                 </div>
                             </div>
 
-                            {/* TABELA DE BATIDAS EXTREMAMENTE COMPACTA */}
+                            {/* TABELA DE BATIDAS COMPACTA */}
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-[11px] border-collapse">
                                     <thead>
@@ -179,23 +177,22 @@ function ConteudoRelatorio() {
                                                 <td className={`py-0.5 px-1.5 font-mono text-center font-bold w-14 ${jornada.saidaFinal !== '---' ? 'text-black' : 'text-slate-300 print:text-slate-400'}`}>
                                                     {jornada.saidaFinal}
                                                 </td>
-                                                {/* Campo de Assinatura maximizado */}
                                                 <td className="py-0.5 px-2 border-l border-dashed border-slate-200 print:border-slate-300"></td>
                                             </tr>
                                         );
                                     })}
                                     </tbody>
-                                </table>
+                                    end</table>
                             </div>
 
-                            {/* ASSINATURAS DO RODAPÉ */}
-                            <div className="mt-4 pt-3 border-t border-slate-300 flex justify-between items-center gap-6 print:mt-4">
-                                <div className="w-56 text-center">
-                                    <div className="border-b border-black w-full h-4 mb-1"></div>
+                            {/* ASSINATURAS DO RODAPÉ (AJUSTADO: Mais margem superior e melhor recuo para escrita) */}
+                            <div className="mt-16 pt-4 border-t border-slate-300 flex justify-between items-center gap-12 print:mt-12">
+                                <div className="w-60 text-center">
+                                    <div className="border-b border-black w-full h-6 mb-1"></div>
                                     <p className="text-[8px] font-black uppercase tracking-wider text-black">Responsável GR Autopeças</p>
                                 </div>
-                                <div className="w-56 text-center">
-                                    <div className="border-b border-black w-full h-4 mb-1"></div>
+                                <div className="w-60 text-center">
+                                    <div className="border-b border-black w-full h-6 mb-1"></div>
                                     <p className="text-[8px] font-black uppercase tracking-wider text-black">Assinatura do Colaborador</p>
                                 </div>
                             </div>
@@ -204,7 +201,7 @@ function ConteudoRelatorio() {
                 )}
             </section>
 
-            {/* CONFIGURAÇÃO EXCLUSIVA DE IMPRESSÃO FORÇADA EM 1 PÁGINA */}
+            {/* ESTILOS DE IMPRESSÃO */}
             <style jsx global>{`
                 @media print {
                     @page {
@@ -220,7 +217,6 @@ function ConteudoRelatorio() {
                     }
                     main { background: white !important; padding: 0 !important; }
 
-                    /* Força cada container de funcionário a gerar uma quebra de folha limpa */
                     .print\:page-break-after-always {
                         page-break-after: always !important;
                         break-after: always !important;
