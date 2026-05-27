@@ -182,10 +182,10 @@ function ConteudoRelatorio() {
                                         );
                                     })}
                                     </tbody>
-                                    end</table>
+                                </table> {/* CORRIGIDO AQUI: Removido o 'end' fantasma */}
                             </div>
 
-                            {/* ASSINATURAS DO RODAPÉ (AJUSTADO: Mais margem superior e melhor recuo para escrita) */}
+                            {/* ASSINATURAS DO RODAPÉ */}
                             <div className="mt-16 pt-4 border-t border-slate-300 flex justify-between items-center gap-12 print:mt-12">
                                 <div className="w-60 text-center">
                                     <div className="border-b border-black w-full h-6 mb-1"></div>
