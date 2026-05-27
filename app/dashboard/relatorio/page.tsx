@@ -12,7 +12,7 @@ interface Funcionario {
 interface RegistroPonto {
     id: string;
     funcionarioId: string;
-    data: string; // Formato ISO vindo do banco da VPS
+    data: string;
     acao: 'entrada' | 'saida';
 }
 
@@ -21,7 +21,6 @@ function ConteudoRelatorio() {
     const [pontos, setPontos] = useState<RegistroPonto[]>([]);
     const [carregando, setCarregando] = useState(true);
 
-    // Estados para filtro de mês/ano (Padrão: Mês atual)
     const dataAtual = new Date();
     const [mesSelecionado, setMesSelecionado] = useState(dataAtual.getMonth() + 1);
     const [anoSelecionado, setAnoSelecionado] = useState(dataAtual.getFullYear());
@@ -49,13 +48,12 @@ function ConteudoRelatorio() {
         carregarDados();
     }, [baseUrl]);
 
-    // CORRIGIDO: Nome da função unificado para evitar erro no TypeScript
     const obterDiasDoMes = () => {
         const qtdDias = new Date(anoSelecionado, mesSelecionado, 0).getDate();
         return Array.from({ length: qtdDias }, (_, i) => i + 1);
     };
 
-    // Filtra e organiza os bipes por dia para cada funcionário
+    // Filtra e organiza cronologicamente as 4 batidas diárias
     const obterJornadaDiaria = (funcionarioId: string, dia: number) => {
         const pontosDoDia = pontos.filter(p => {
             const dataPonto = new Date(p.data);
@@ -67,14 +65,19 @@ function ConteudoRelatorio() {
             );
         });
 
+        // Ordena estritamente por horário (do mais cedo ao mais tarde)
         pontosDoDia.sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime());
 
-        const entrada = pontosDoDia.find(p => p.acao === 'entrada');
-        const saida = pontosDoDia.find(p => p.acao === 'saida');
+        const formatarHora = (ponto?: RegistroPonto) => {
+            if (!ponto) return '---';
+            return new Date(ponto.data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        };
 
         return {
-            entrada: entrada ? new Date(entrada.data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '---',
-            saida: saida ? new Date(saida.data).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '---'
+            entrada: formatarHora(pontosDoDia[0]),       // 1º Bipe
+            saidaAlmoço: formatarHora(pontosDoDia[1]),   // 2º Bipe
+            voltaAlmoço: formatarHora(pontosDoDia[2]),   // 3º Bipe
+            saidaFinal: formatarHora(pontosDoDia[3]),    // 4º Bipe
         };
     };
 
@@ -83,7 +86,7 @@ function ConteudoRelatorio() {
     return (
         <main className="min-h-screen bg-black text-white p-8 font-sans print:bg-white print:text-black print:p-0">
 
-            {/* PAINEL DE CONTROLE WEB (OCULTO NA IMPRESSÃO) */}
+            {/* PAINEL DE CONTROLE WEB */}
             <header className="max-w-6xl mx-auto mb-10 flex flex-col md:flex-row justify-between items-center gap-6 bg-slate-900/40 p-6 rounded-[30px] border border-white/5 print:hidden">
                 <div>
                     <Link href="/dashboard" className="text-orange-500 font-black text-[10px] uppercase tracking-[4px] mb-2 block hover:opacity-70 transition-all">← Dashboard</Link>
@@ -110,7 +113,7 @@ function ConteudoRelatorio() {
                 </div>
             </header>
 
-            {/* RELATÓRIOS INDIVIDUAIS EM SÉRIE */}
+            {/* RELATÓRIOS INDIVIDUAIS */}
             <section className="max-w-5xl mx-auto flex flex-col gap-12 print:gap-8">
                 {carregando ? (
                     <div className="text-center py-20 animate-pulse font-black uppercase text-slate-800 tracking-[5px] print:hidden">Sincronizando Banco de Dados...</div>
@@ -120,7 +123,7 @@ function ConteudoRelatorio() {
                             key={func.id}
                             className="bg-slate-900/20 border border-white/5 rounded-[35px] p-8 print:border-black print:p-6 print:break-inside-avoid print:bg-white text-black bg-white"
                         >
-                            {/* CABEÇALHO OFICIAL DA EMPRESA */}
+                            {/* CABEÇALHO DA EMPRESA */}
                             <div className="flex flex-col md:flex-row justify-between items-start border-b-2 border-black pb-4 mb-6 gap-4">
                                 <div className="font-sans">
                                     <h2 className="text-xl font-black uppercase tracking-tight text-black leading-none mb-1">GR AUTOPECAS LTDA</h2>
@@ -156,15 +159,17 @@ function ConteudoRelatorio() {
                                 </div>
                             </div>
 
-                            {/* TABELA DE BATIDAS */}
+                            {/* TABELA DE BATIDAS (4 COLUNAS DE HORÁRIO) */}
                             <div className="overflow-x-auto">
                                 <table className="w-full text-left text-xs border-collapse">
                                     <thead>
-                                    <tr className="border-b-2 border-slate-300 text-slate-800 uppercase font-black text-[10px] tracking-wider bg-slate-100 print:bg-slate-100">
-                                        <th className="py-2 px-3 w-24">Data</th>
-                                        <th className="py-2 px-3">Entrada</th>
-                                        <th className="py-2 px-3">Saída</th>
-                                        <th className="py-2 px-3 text-right">Assinatura / Justificativa Diária</th>
+                                    <tr className="border-b-2 border-slate-300 text-slate-800 uppercase font-black text-[9px] tracking-wider bg-slate-100 print:bg-slate-100">
+                                        <th className="py-2 px-2 w-16">Data</th>
+                                        <th className="py-2 px-2 text-center">Entrada</th>
+                                        <th className="py-2 px-2 text-center">Sáida Alm.</th>
+                                        <th className="py-2 px-2 text-center">Volta Alm.</th>
+                                        <th className="py-2 px-2 text-center">Saída Fim</th>
+                                        <th className="py-2 px-3 text-right">Assinatura / Justificativa</th>
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -172,16 +177,22 @@ function ConteudoRelatorio() {
                                         const jornada = obterJornadaDiaria(func.id, dia);
                                         return (
                                             <tr key={dia} className="border-b border-slate-200 hover:bg-slate-50 transition-colors print:border-slate-300">
-                                                <td className="py-2 px-3 font-mono font-bold text-black">
+                                                <td className="py-2 px-2 font-mono font-black text-black">
                                                     {String(dia).padStart(2, '0')}/{String(mesSelecionado).padStart(2, '0')}
                                                 </td>
-                                                <td className={`py-2 px-3 font-mono font-bold ${jornada.entrada !== '---' ? 'text-black' : 'text-slate-400'}`}>
+                                                <td className={`py-2 px-2 font-mono text-center font-bold ${jornada.entrada !== '---' ? 'text-black' : 'text-slate-300 print:text-slate-400'}`}>
                                                     {jornada.entrada}
                                                 </td>
-                                                <td className={`py-2 px-3 font-mono font-bold ${jornada.saida !== '---' ? 'text-black' : 'text-slate-400'}`}>
-                                                    {jornada.saida}
+                                                <td className={`py-2 px-2 font-mono text-center font-bold ${jornada.saidaAlmoço !== '---' ? 'text-black' : 'text-slate-300 print:text-slate-400'}`}>
+                                                    {jornada.saidaAlmoço}
                                                 </td>
-                                                <td className="py-2 px-3 border-l border-dashed border-slate-200 w-1/3 print:border-slate-300"></td>
+                                                <td className={`py-2 px-2 font-mono text-center font-bold ${jornada.voltaAlmoço !== '---' ? 'text-black' : 'text-slate-300 print:text-slate-400'}`}>
+                                                    {jornada.voltaAlmoço}
+                                                </td>
+                                                <td className={`py-2 px-2 font-mono text-center font-bold ${jornada.saidaFinal !== '---' ? 'text-black' : 'text-slate-300 print:text-slate-400'}`}>
+                                                    {jornada.saidaFinal}
+                                                </td>
+                                                <td className="py-2 px-3 border-l border-dashed border-slate-200 w-1/4 print:border-slate-300"></td>
                                             </tr>
                                         );
                                     })}
@@ -189,9 +200,12 @@ function ConteudoRelatorio() {
                                 </table>
                             </div>
 
-                            {/* RODAPÉ DE VALIDAÇÃO */}
-                            <div className="mt-8 pt-6 border-t border-slate-300 flex flex-col sm:flex-row justify-between items-center gap-4">
-                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Gerado automaticamente via Felinto Tech</p>
+                            {/* BLOCO DE ASSINATURAS DUPLAS */}
+                            <div className="mt-12 pt-6 border-t border-slate-300 flex flex-col sm:flex-row justify-between items-center gap-8 print:mt-10">
+                                <div className="w-64 text-center">
+                                    <div className="border-b border-black w-full h-5 mb-2"></div>
+                                    <p className="text-[9px] font-black uppercase tracking-wider text-black">Responsável GR Autopeças</p>
+                                </div>
                                 <div className="w-64 text-center">
                                     <div className="border-b border-black w-full h-5 mb-2"></div>
                                     <p className="text-[9px] font-black uppercase tracking-wider text-black">Assinatura do Colaborador</p>
