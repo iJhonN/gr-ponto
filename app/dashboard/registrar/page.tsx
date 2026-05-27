@@ -23,30 +23,54 @@ export default function RegistrarAjuste() {
         observacao: ''
     });
 
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+
     useEffect(() => {
         const carregarFuncionarios = async () => {
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+            if (!baseUrl) return;
             try {
                 const res = await fetch(`${baseUrl}/funcionarios`);
                 if (res.ok) setFuncionarios(await res.json());
             } catch (e) { console.error(e); }
         };
         carregarFuncionarios();
-    }, []);
+    }, [baseUrl]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!baseUrl) return;
         setCarregando(true);
 
-        // Aqui simulamos o envio para a VPS
-        console.log("Enviando ajuste:", form);
+        try {
+            // ENVIO REAL INTEGRADO COM O SEU ROUTE.TS
+            const res = await fetch(`${baseUrl}/pontos`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    funcionarioId: form.funcionarioId,
+                    modo: 'manual',                     // Indica para a API ignorar a lógica do totem
+                    tipoManual: form.tipo,               // Mapeado para o 'tipoManual' do back-end
+                    minutosAjuste: form.minutos,         // Mapeado para o 'minutosAjuste' do back-end
+                    dataManual: `${form.data}T12:00:00.000Z`, // Evita problemas de fuso horário no faturamento do dia
+                    observacaoManual: form.observacao    // Mapeado para o 'observacaoManual' do back-end
+                })
+            });
 
-        // Simulação de sucesso
-        setTimeout(() => {
+            if (res.ok) {
+                alert("Lançamento registrado com sucesso!");
+                router.push('/dashboard');
+            } else {
+                const erroData = await res.json();
+                alert(`Erro ao registrar: ${erroData.error || 'Erro interno do servidor'}`);
+            }
+        } catch (error) {
+            console.error("Erro na requisição:", error);
+            alert("Não foi possível conectar à VPS. Verifique sua conexão ou o status do servidor.");
+        } finally {
             setCarregando(false);
-            alert("Lançamento registrado com sucesso!");
-            router.push('/dashboard');
-        }, 1000);
+        }
     };
 
     return (
